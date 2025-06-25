@@ -31,7 +31,7 @@ lti.onDeepLinking(async (token, req, res) => {
     {
       type: "ltiResourceLink",
       title: "MAM Plugin Tool Test",
-      url: "https://mam-plugin-624886803499.us-central1.run.app/",
+      url: "https://mam-plugin-624886803499.us-central1.run.app/lti/launch",
       custom: {
         info: "launched-via-deep-linking",
       },
@@ -58,5 +58,6 @@ const setup = async () => {
     accesstokenEndpoint: process.env.TOKEN_ENDPOINT,
     authConfig: { method: "JWK_SET", key: process.env.JWKS_URL },
   });
+  console.log("Platform registered successfully🥳🥳");
 };
 setup();

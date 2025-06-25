@@ -1,0 +1,18 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@brightspace-ui/core": "^3.148.1",
+    "lit": "^3.3.0"
+  },
+  "devDependencies": {
+    "vite": "^6.3.5"
+  }
+}

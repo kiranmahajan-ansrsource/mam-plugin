@@ -24,7 +24,7 @@ lti.onConnect((token, req, res) => {
 });
 
 const setup = async () => {
-  await lti.deploy({ port: 3000 });
+  await lti.deploy({ port: process.env.PORT || 8080 });
   lti.app.use("/", express.static(path.join(__dirname, "public")));
   //   console.log(path.join(__dirname, "../../frontend"));
 

@@ -20,5 +20,5 @@ RUN cp -r /app/frontend/dist/* /app/backend/public/
 
 # -------- Final Setup --------
 WORKDIR /app/backend
-EXPOSE 3000
+EXPOSE 8080
 CMD ["node", "src/index.js"]

@@ -1,13 +1,14 @@
 {
   "name": "frontend",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
   },
+  "author": "Kiran Mahajan",
   "dependencies": {
     "@brightspace-ui/core": "^3.148.1",
     "lit": "^3.3.0"

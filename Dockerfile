@@ -14,7 +14,7 @@ RUN cd backend && npm install
 COPY backend ./backend
 
 # Copy built frontend to final location
-COPY --from=0 /app/frontend/dist ./frontend/dist
+COPY /app/frontend/dist ./frontend/dist
 
 WORKDIR /app/backend
 CMD ["node", "src/index.js"]

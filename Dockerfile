@@ -1,21 +1,24 @@
+# -------- Base Node Image --------
 FROM node:20-alpine
 
-# Build frontend
+# -------- Build Frontend --------
 WORKDIR /app/frontend
-COPY frontend/package.json frontend/package-lock.json* ./
+COPY frontend/package*.json ./
 RUN npm install
-COPY frontend ./
+COPY frontend/ ./
 RUN npm run build
 
-# Build backend
-WORKDIR /app
-COPY backend/package.json backend/package-lock.json* ./backend/
-RUN cd backend && npm install
-COPY backend ./backend
-
-# Copy built frontend to final location
-COPY /app/frontend/dist ./frontend/dist
-
+# -------- Build Backend --------
 WORKDIR /app/backend
-CMD ["node", "src/index.js"]
+COPY backend/package*.json ./
+RUN npm install
+COPY backend/ ./
+
+# -------- Copy Frontend Build into Backend --------
+RUN mkdir -p /app/backend/public
+RUN cp -r /app/frontend/dist/* /app/backend/public/
+
+# -------- Final Setup --------
+WORKDIR /app/backend
 EXPOSE 3000
+CMD ["node", "src/index.js"]

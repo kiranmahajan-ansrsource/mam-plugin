@@ -17,10 +17,11 @@ LTI.setup(
     devMode: false,
   }
 );
+console.log(path.join(__dirname, "../public/index.html"));
 
 LTI.onConnect((token, req, res) => {
   console.log("⚠️onConnect Launch⚠️");
-  return res.sendFile(path.join(__dirname, "public/index.html"));
+  return res.sendFile(path.join(__dirname, "../public/index.html"));
 });
 
 LTI.onDeepLinking((token, req, res) => {
@@ -29,7 +30,7 @@ LTI.onDeepLinking((token, req, res) => {
 });
 
 LTI.app.get("/lti/deeplink", (req, res) => {
-  res.sendFile(path.join(__dirname, "public/index.html"));
+  res.sendFile(path.join(__dirname, "../public/index.html"));
 });
 
 LTI.app.post("/lti/deeplink", async (req, res) => {

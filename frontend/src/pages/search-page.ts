@@ -166,12 +166,12 @@ export class SearchPage extends LitElement {
   }
 
   private _selectImage(image: ImageItem): void {
-    history.pushState({ image }, "", "/details");
-    Router.go("/details");
+    history.pushState({ image }, "", "/lti/details");
+    Router.go("/lti/details");
   }
 
   private _cancel() {
-    Router.go("/");
+    Router.go("/lti/deeplink");
   }
 
   render() {
@@ -236,13 +236,16 @@ export class SearchPage extends LitElement {
           `}
 
       <div class="footer">
-        <d2l-button primary @click=${() => Router.go("/details")}
+        <d2l-button
+          text="Next"
+          primary
+          @click=${() => Router.go("/lti/details")}
           >Next</d2l-button
         >
-        <d2l-button @click=${() => console.log("Back clicked")}
+        <d2l-button text="Back" @click=${() => console.log("Back clicked")}
           >Back</d2l-button
         >
-        <d2l-button @click=${this._cancel}>Cancel</d2l-button>
+        <d2l-button text="Cancel" @click=${this._cancel}>Cancel</d2l-button>
       </div>
     `;
   }

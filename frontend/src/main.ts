@@ -10,9 +10,9 @@ if (outlet) {
   const router = new Router(outlet);
 
   router.setRoutes([
-    { path: "/", component: "search-page" },
-    { path: "/details", component: "details-page" },
-    { path: "/insert", component: "insert-page" },
+    { path: "/lti/deeplink", component: "search-page" },
+    { path: "/lti/details", component: "details-page" },
+    { path: "/lti/insert", component: "insert-page" },
   ]);
 } else {
   console.error("Router outlet not found");

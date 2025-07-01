@@ -122,8 +122,8 @@ export class DetailsPage extends LitElement {
   };
 
   private _next(): void {
-    history.pushState({ image: this.image }, "", "/insert");
-    Router.go("/insert");
+    history.pushState({ image: this.image }, "", "/lti/insert");
+    Router.go("/lti/insert");
   }
 
   private _back(): void {

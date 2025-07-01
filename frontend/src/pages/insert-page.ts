@@ -100,7 +100,7 @@ export class InsertPage extends LitElement {
     if (state?.image) {
       this.image = state.image;
     } else {
-      Router.go("/");
+      Router.go("/lti/deeplink");
     }
   }
 
@@ -137,11 +137,11 @@ export class InsertPage extends LitElement {
 
   private _back() {
     history.pushState({ image: this.image }, "", "/details");
-    Router.go("/details");
+    Router.go("/lti/details");
   }
 
   private _cancel() {
-    Router.go("/");
+    Router.go("/lti/deeplink");
   }
 
   render() {

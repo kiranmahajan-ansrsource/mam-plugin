@@ -1,6 +1,9 @@
 const path = require("path");
 const LTI = require("ltijs").Provider;
 
+const isDev = process.env.NODE_ENV !== "production";
+const publicPath = path.join(__dirname, "../public");
+
 LTI.setup(
   process.env.LTI_KEY,
   {
@@ -10,18 +13,20 @@ LTI.setup(
     appRoute: "/lti/launch",
     loginRoute: "/lti/login",
     keysetRoute: "/lti/keys",
+    dynRegRoute: "/lti/register",
+    staticPath: publicPath,
     cookies: {
-      secure: true,
-      sameSite: "None",
+      secure: !isDev,
+      sameSite: isDev ? "Lax" : "None",
     },
-    devMode: false,
+    devMode: isDev,
   }
 );
-console.log(path.join(__dirname, "../public/index.html"));
+LTI.whitelist("/assets", "/favicon.ico");
 
 LTI.onConnect((token, req, res) => {
-  console.log("⚠️onConnect Launch⚠️");
-  return res.sendFile(path.join(__dirname, "../public/index.html"));
+  console.log("⚠️onConnect Launch⚠️ ", token);
+  return res.send("User connected!");
 });
 
 LTI.onDeepLinking((token, req, res) => {
@@ -30,7 +35,7 @@ LTI.onDeepLinking((token, req, res) => {
 });
 
 LTI.app.get("/lti/deeplink", (req, res) => {
-  res.sendFile(path.join(__dirname, "../public/index.html"));
+  res.sendFile(path.join(publicPath, "index.html"));
 });
 
 LTI.app.post("/lti/deeplink", async (req, res) => {
@@ -52,6 +57,10 @@ LTI.app.post("/lti/deeplink", async (req, res) => {
     }
   );
   return res.send(form);
+});
+
+LTI.app.get("/*splat", (req, res) => {
+  res.sendFile(path.join(publicPath, "index.html"));
 });
 
 const start = async () => {

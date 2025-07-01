@@ -7,6 +7,7 @@ import "@brightspace-ui/core/components/alert/alert.js";
 import "@brightspace-ui/core/components/button/button.js";
 import { Router } from "@vaadin/router";
 import axios from "axios";
+import { configureModal } from "../utils/configure-modal";
 
 interface ImageItem {
   id: string;
@@ -138,8 +139,17 @@ export class SearchPage extends LitElement {
     Router.go("/details");
   }
 
-  private _cancel() {
-    Router.go("/deeplink");
+  connectedCallback() {
+    super.connectedCallback();
+    configureModal({
+      next: () => {
+        if (this.results.length > 0) {
+          history.pushState({ image: this.results[0] }, "", "/details");
+          Router.go("/details");
+        }
+      },
+      cancel: () => Router.go("/deeplink"),
+    });
   }
 
   render() {

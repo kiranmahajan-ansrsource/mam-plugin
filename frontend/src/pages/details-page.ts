@@ -4,6 +4,7 @@ import "@brightspace-ui/core/components/button/button.js";
 import "@brightspace-ui/core/components/typography/typography.js";
 import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
 import { Router } from "@vaadin/router";
+import { configureModal } from "../utils/configure-modal";
 
 interface ImageData {
   id: string;
@@ -18,8 +19,6 @@ interface ImageData {
 @customElement("details-page")
 export class DetailsPage extends LitElement {
   static styles = css`
-
-
     .header {
       margin-bottom: 16px;
       font-weight: bold;
@@ -86,14 +85,6 @@ export class DetailsPage extends LitElement {
     }
   `;
 
-  connectedCallback() {
-    super.connectedCallback();
-    const state = history.state;
-    if (state?.image) {
-      this.image = state.image;
-    }
-  }
-
   @property({ type: Object })
   image: ImageData = {
     id: "img-0",
@@ -105,30 +96,30 @@ export class DetailsPage extends LitElement {
     keywords: ["Keyword1", "Keyword2", "Keyword3"],
   };
 
-  private _next(): void {
-    history.pushState({ image: this.image }, "", "/insert");
-    Router.go("/insert");
-  }
+  connectedCallback() {
+    super.connectedCallback();
+    const state = history.state;
+    if (state?.image) {
+      this.image = state.image;
+    }
 
-  private _back(): void {
-    this.dispatchEvent(
-      new CustomEvent("back-step", { bubbles: true, composed: true })
-    );
-  }
-
-  private _cancel(): void {
-    this.dispatchEvent(
-      new CustomEvent("cancel", { bubbles: true, composed: true })
-    );
+    configureModal({
+      back: () => {
+        history.pushState({}, "", "/deeplink");
+        Router.go("/deeplink");
+      },
+      next: () => {
+        history.pushState({ image: this.image }, "", "/insert");
+        Router.go("/insert");
+      },
+      cancel: () => Router.go("/deeplink"),
+    });
   }
 
   render() {
     return html`
       <d2l-breadcrumbs>
-        <d2l-breadcrumb
-          text="Search Results"
-          @click=${this._back}
-        ></d2l-breadcrumb>
+        <d2l-breadcrumb text="Search Results"></d2l-breadcrumb>
         <d2l-breadcrumb text="Image Details"></d2l-breadcrumb>
       </d2l-breadcrumbs>
 

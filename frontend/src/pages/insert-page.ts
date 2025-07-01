@@ -5,6 +5,7 @@ import "@brightspace-ui/core/components/inputs/input-checkbox.js";
 import "@brightspace-ui/core/components/button/button.js";
 import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
 import { Router } from "@vaadin/router";
+import { configureModal } from "../utils/configure-modal";
 
 interface ImageData {
   id: string;
@@ -14,7 +15,6 @@ interface ImageData {
 @customElement("insert-page")
 export class InsertPage extends LitElement {
   static styles = css`
-
     d2l-breadcrumbs {
       margin-bottom: 24px;
     }
@@ -49,22 +49,11 @@ export class InsertPage extends LitElement {
     .checkbox {
       margin-top: 8px;
     }
-
-   `;
+  `;
 
   @state() private image: ImageData = { id: "", name: "" };
   @state() private altText: string = "";
   @state() private isDecorative: boolean = false;
-
-  connectedCallback() {
-    super.connectedCallback();
-    const state = history.state;
-    if (state?.image) {
-      this.image = state.image;
-    } else {
-      Router.go("/deeplink");
-    }
-  }
 
   private _handleAltTextChange(e: Event) {
     const target = e.target as HTMLTextAreaElement;
@@ -97,20 +86,31 @@ export class InsertPage extends LitElement {
     alert("Image inserted successfully!");
   }
 
-  private _back() {
-    history.pushState({ image: this.image }, "", "/details");
-    Router.go("/details");
-  }
+  connectedCallback() {
+    super.connectedCallback();
+    const state = history.state;
+    if (state?.image) {
+      this.image = state.image;
+    } else {
+      Router.go("/deeplink");
+    }
 
-  private _cancel() {
-    Router.go("/deeplink");
+    configureModal({
+      back: () => {
+        history.pushState({ image: this.image }, "", "/details");
+        Router.go("/details");
+      },
+      next: () => this._insert(),
+      cancel: () => Router.go("/deeplink"),
+      insertMode: true,
+    });
   }
 
   render() {
     return html`
       <d2l-breadcrumbs>
-        <d2l-breadcrumb text="Search" @click=${this._cancel}></d2l-breadcrumb>
-        <d2l-breadcrumb text="Details" @click=${this._back}></d2l-breadcrumb>
+        <d2l-breadcrumb text="Search"></d2l-breadcrumb>
+        <d2l-breadcrumb text="Details"></d2l-breadcrumb>
         <d2l-breadcrumb text="Insert"></d2l-breadcrumb>
       </d2l-breadcrumbs>
 

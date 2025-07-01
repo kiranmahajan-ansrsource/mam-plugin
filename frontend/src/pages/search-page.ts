@@ -8,10 +8,12 @@ import "@brightspace-ui/core/components/button/button.js";
 import { Router } from "@vaadin/router";
 import axios from "axios";
 import { configureModal } from "../utils/configure-modal";
+import { getLtik } from "../utils/helper";
 
 interface ImageItem {
   id: string;
   name: string;
+  thumbnailUrl: string;
 }
 
 @customElement("search-page")
@@ -78,31 +80,54 @@ export class SearchPage extends LitElement {
   `;
 
   @state() private searchTerm = "";
-  @state() private results: any[] = [];
+  @state() private results: ImageItem[] = [];
   @state() private page = 1;
   @state() private totalCount = 0;
   @state() private loading = false;
   @state() private loadingMore = false;
   @state() private searchAttempted = false;
 
-  private limit = 18;
+  private limit: number = 10;
+  private ltik: string | null = null;
 
   private _handleInput(e: Event) {
     const target = e.target as HTMLInputElement;
     this.searchTerm = target.value;
   }
+
+  private _mapItem(raw: any): ImageItem {
+    return {
+      id: raw.SystemIdentifier,
+      name: raw.Title,
+      thumbnailUrl: raw.Path_TR7?.URI || "",
+    };
+  }
+
   private async _triggerSearch() {
     if (!this.searchTerm.trim()) return;
     this.loading = true;
     this.searchAttempted = true;
     this.results = [];
     try {
-      const res = await axios.post("/mayo/search", { query: this.searchTerm });
-      this.results = res.data.images || [];
-      this.totalCount = this.results.length;
+      if (!this.ltik) {
+        this.ltik = getLtik();
+      }
+      const res = await axios.get("/search", {
+        params: {
+          q: this.searchTerm,
+          page: 1,
+          limit: this.limit,
+        },
+        headers: {
+          Authorization: `Bearer ${this.ltik}`,
+        },
+      });
+      const items = res.data.results || [];
+      this.results = items.map((item: any) => this._mapItem(item));
+      this.totalCount = res.data.total || this.results.length;
       this.page = 1;
     } catch (err) {
-      console.error("Search error", err);
+      // console.error("Search error", err);
     } finally {
       this.loading = false;
     }
@@ -111,14 +136,20 @@ export class SearchPage extends LitElement {
   private async _loadMore() {
     this.loadingMore = true;
     const nextPage = this.page + 1;
-
     try {
-      const res = await axios.get("http://localhost:3000/api/v1/search", {
+      const res = await axios.get("/search", {
         params: { q: this.searchTerm, page: nextPage, limit: this.limit },
+        headers: {
+          Authorization: `Bearer ${this.ltik}`,
+        },
       });
-
-      this.results = [...this.results, ...res.data.results];
+      const items = res.data.results || [];
+      this.results = [
+        ...this.results,
+        ...items.map((item: any) => this._mapItem(item)),
+      ];
       this.page = nextPage;
+      this.totalCount = res.data.total || this.totalCount;
     } catch (err) {
       console.error("Load more error", err);
     } finally {
@@ -133,6 +164,9 @@ export class SearchPage extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    if (!this.ltik) {
+      this.ltik = getLtik();
+    }
     configureModal({
       next: () => {
         if (this.results.length > 0) {
@@ -154,7 +188,6 @@ export class SearchPage extends LitElement {
         @keydown=${(e: KeyboardEvent) =>
           e.key === "Enter" && this._triggerSearch()}
       ></d2l-input-search>
-
       ${this.loading
         ? html`<d2l-loading-spinner size="80"></d2l-loading-spinner>`
         : this.results.length === 0 && this.searchAttempted
@@ -166,25 +199,25 @@ export class SearchPage extends LitElement {
         : html`
             <div class="count-info">
               Showing <strong>${this.results.length}</strong> of
-              <strong>${this.totalCount}</strong> results
+              <strong>${this.totalCount}</strong> results (Page ${this.page})
             </div>
 
             <div class="grid">
-              ${this.results.map(
-                (item) => html`
+              ${this.results.map((item) => {
+                console.log(item.thumbnailUrl);
+                return html`
                   <div
                     class="thumbnail"
                     @click=${() => this._selectImage(item)}
                   >
                     <img
-                      src=${item.url || item.imageUrl || ""}
-                      alt=${item.title || item.name || "Image"}
+                      src=${item.thumbnailUrl}
+                      alt=${item.name || "Image"}
                       style="max-width:100%; max-height:100px; object-fit:contain;"
                     />
-                    <div>${item.title || item.name || "Untitled"}</div>
                   </div>
-                `
-              )}
+                `;
+              })}
             </div>
 
             ${this.results.length < this.totalCount

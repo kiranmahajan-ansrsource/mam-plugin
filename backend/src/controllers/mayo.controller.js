@@ -7,11 +7,12 @@ const getAccessToken = async () => {
   if (accessToken && Date.now() < tokenExpires) return accessToken;
   const response = await axios.post(
     process.env.MAYO_AUTH_URL,
-    {
+    new URLSearchParams({
+      grant_type: "client_credentials",
       client_id: process.env.MAYO_CLIENT_ID,
       client_secret: process.env.MAYO_CLIENT_SECRET,
-    },
-    { headers: { "Content-Type": "application/json" } }
+    }),
+    { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
   );
   accessToken = response.data.access_token;
   tokenExpires = Date.now() + (response.data.expires_in - 60) * 1000;

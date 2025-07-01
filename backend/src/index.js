@@ -1,10 +1,11 @@
 const path = require("path");
-const LTI = require("ltijs").Provider;
-
+const lti = require("ltijs").Provider;
+const deeplinkRoutes = require("./routes/deeplink.route");
+const mayoRoutes = require("./routes/mayo.route");
 const isDev = process.env.NODE_ENV !== "production";
 const publicPath = path.join(__dirname, "../public");
 
-LTI.setup(
+lti.setup(
   process.env.LTI_KEY,
   {
     url: process.env.MONGODB_URI,
@@ -18,50 +19,24 @@ LTI.setup(
     devMode: isDev,
   }
 );
-LTI.whitelist("/assets", "/favicon.ico");
+lti.whitelist("/assets", "/favicon.ico");
 
-LTI.onConnect((token, req, res) => {
+lti.onConnect(async (token, req, res) => {
   console.log("⚠️onConnect Launch⚠️ ", token);
   return res.send("User connected!");
 });
 
-LTI.onDeepLinking((token, req, res) => {
-  console.log("⚠️onDeepLinking Launch⚠️");
-  return LTI.redirect(res, "/deeplink", { newResource: true });
+lti.onDeepLinking(async (token, req, res) => {
+  console.log("⚠️onDeepLinking Launch⚠️", token);
+  return lti.redirect(res, "/deeplink", { newResource: true });
 });
 
-LTI.app.get("/deeplink", (req, res) => {
-  res.sendFile(path.join(publicPath, "index.html"));
-});
+lti.app.use(deeplinkRoutes);
+lti.app.use("/mayo", mayoRoutes);
 
-LTI.app.post("/deeplink", async (req, res) => {
-  const selection = req.body.product;
-  const items = [
-    {
-      type: "ltiResourceLink",
-      title: selection,
-      url: `${process.env.APP_URL}`,
-      custom: { product: selection },
-    },
-  ];
-
-  const form = await LTI.DeepLinking.createDeepLinkingForm(
-    res.locals.token,
-    items,
-    {
-      message: "Item added successfully!",
-    }
-  );
-  return res.send(form);
-});
-
-LTI.app.get("/*splat", (req, res) => {
-  res.sendFile(path.join(publicPath, "index.html"));
-});
-
-const start = async () => {
-  await LTI.deploy({ port: process.env.PORT || 8080 });
-  await LTI.registerPlatform({
+const setup = async () => {
+  await lti.deploy({ port: process.env.PORT });
+  await lti.registerPlatform({
     url: process.env.PLATFORM_URL,
     name: "Brightspace",
     clientId: process.env.CLIENT_ID,
@@ -70,4 +45,4 @@ const start = async () => {
     authConfig: { method: "JWK_SET", key: process.env.KEYSET_URL },
   });
 };
-start();
+setup();

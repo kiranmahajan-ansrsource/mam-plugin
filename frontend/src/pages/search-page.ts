@@ -78,7 +78,7 @@ export class SearchPage extends LitElement {
   `;
 
   @state() private searchTerm = "";
-  @state() private results: ImageItem[] = [];
+  @state() private results: any[] = [];
   @state() private page = 1;
   @state() private totalCount = 0;
   @state() private loading = false;
@@ -91,19 +91,15 @@ export class SearchPage extends LitElement {
     const target = e.target as HTMLInputElement;
     this.searchTerm = target.value;
   }
-
   private async _triggerSearch() {
     if (!this.searchTerm.trim()) return;
     this.loading = true;
     this.searchAttempted = true;
     this.results = [];
-
     try {
-      const res = await axios.get("http://localhost:3000/api/v1/search", {
-        params: { q: this.searchTerm, page: 1, limit: this.limit },
-      });
-      this.results = res.data.results;
-      this.totalCount = res.data.total;
+      const res = await axios.post("/mayo/search", { query: this.searchTerm });
+      this.results = res.data.images || [];
+      this.totalCount = this.results.length;
       this.page = 1;
     } catch (err) {
       console.error("Search error", err);
@@ -180,7 +176,12 @@ export class SearchPage extends LitElement {
                     class="thumbnail"
                     @click=${() => this._selectImage(item)}
                   >
-                    ${item.name}
+                    <img
+                      src=${item.url || item.imageUrl || ""}
+                      alt=${item.title || item.name || "Image"}
+                      style="max-width:100%; max-height:100px; object-fit:contain;"
+                    />
+                    <div>${item.title || item.name || "Untitled"}</div>
                   </div>
                 `
               )}

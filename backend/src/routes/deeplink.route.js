@@ -2,13 +2,13 @@ const router = require("express").Router();
 const path = require("path");
 const lti = require("ltijs").Provider;
 
-const publicPath = path.join(__dirname, "../public");
+const publicPath = path.join(__dirname, "../../public");
 
 router.get("/deeplink", (req, res) => {
   res.sendFile(path.join(publicPath, "index.html"));
 });
 
-// optional for now since no post request is being made we are just getting html 
+// optional for now since no post request is being made we are just getting html
 router.post("/deeplink", async (req, res) => {
   try {
     const resource = req.body;

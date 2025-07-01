@@ -17,10 +17,6 @@ interface ImageItem {
 @customElement("search-page")
 export class SearchPage extends LitElement {
   static styles = css`
-    .search-section {
-      margin: 12px 0 20px;
-    }
-
     .count-info {
       font-size: 14px;
       color: #555;
@@ -154,16 +150,14 @@ export class SearchPage extends LitElement {
 
   render() {
     return html`
-      <div class="search-section">
-        <d2l-input-search
-          label="Search"
-          placeholder="e.g. x-ray"
-          @input=${this._handleInput}
-          .value=${this.searchTerm}
-          @keydown=${(e: KeyboardEvent) =>
-            e.key === "Enter" && this._triggerSearch()}
-        ></d2l-input-search>
-      </div>
+      <d2l-input-search
+        label="Search"
+        placeholder="e.g. x-ray"
+        @input=${this._handleInput}
+        .value=${this.searchTerm}
+        @keydown=${(e: KeyboardEvent) =>
+          e.key === "Enter" && this._triggerSearch()}
+      ></d2l-input-search>
 
       ${this.loading
         ? html`<d2l-loading-spinner size="80"></d2l-loading-spinner>`

@@ -16,38 +16,6 @@ interface ImageItem {
 @customElement("search-page")
 export class SearchPage extends LitElement {
   static styles = css`
-    :host {
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      box-sizing: border-box;
-      font-family: "Segoe UI", sans-serif;
-      padding: 24px;
-      max-width: 960px;
-      margin: 0 auto;
-      color: #333;
-    }
-
-    .header {
-      margin-bottom: 16px;
-    }
-
-    .heading {
-      font-weight: bold;
-      font-size: 24px;
-      margin-bottom: 4px;
-    }
-
-    .subheading {
-      font-size: 16px;
-      color: #555;
-      margin-bottom: 8px;
-    }
-
-    d2l-heading {
-      color: black;
-    }
-
     .search-section {
       margin: 12px 0 20px;
     }
@@ -166,21 +134,16 @@ export class SearchPage extends LitElement {
   }
 
   private _selectImage(image: ImageItem): void {
-    history.pushState({ image }, "", "/lti/details");
-    Router.go("/lti/details");
+    history.pushState({ image }, "", "/details");
+    Router.go("/details");
   }
 
   private _cancel() {
-    Router.go("/lti/deeplink");
+    Router.go("/deeplink");
   }
 
   render() {
     return html`
-      <div class="header">
-        <div class="heading">Insert Stuff</div>
-        <div class="subheading">Mayo Clinic MAM (Media Asset Management)</div>
-      </div>
-
       <div class="search-section">
         <d2l-input-search
           label="Search"
@@ -234,19 +197,6 @@ export class SearchPage extends LitElement {
                 `
               : null}
           `}
-
-      <div class="footer">
-        <d2l-button
-          text="Next"
-          primary
-          @click=${() => Router.go("/lti/details")}
-          >Next</d2l-button
-        >
-        <d2l-button text="Back" @click=${() => console.log("Back clicked")}
-          >Back</d2l-button
-        >
-        <d2l-button text="Cancel" @click=${this._cancel}>Cancel</d2l-button>
-      </div>
     `;
   }
 }

@@ -18,16 +18,7 @@ interface ImageData {
 @customElement("details-page")
 export class DetailsPage extends LitElement {
   static styles = css`
-    :host {
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      padding: 24px;
-      box-sizing: border-box;
-      font-family: sans-serif;
-      max-width: 960px;
-      margin: 0 auto;
-    }
+
 
     .header {
       margin-bottom: 16px;
@@ -93,13 +84,6 @@ export class DetailsPage extends LitElement {
       flex: 1;
       color: black;
     }
-
-    .footer {
-      display: flex;
-      justify-content: flex-start;
-      margin-top: 32px;
-      gap: 12px;
-    }
   `;
 
   connectedCallback() {
@@ -122,8 +106,8 @@ export class DetailsPage extends LitElement {
   };
 
   private _next(): void {
-    history.pushState({ image: this.image }, "", "/lti/insert");
-    Router.go("/lti/insert");
+    history.pushState({ image: this.image }, "", "/insert");
+    Router.go("/insert");
   }
 
   private _back(): void {
@@ -140,11 +124,6 @@ export class DetailsPage extends LitElement {
 
   render() {
     return html`
-      <div class="header">
-        <div class="heading">Insert Stuff</div>
-        <div class="subheading">Mayo Clinic MAM (Media Asset Management)</div>
-      </div>
-
       <d2l-breadcrumbs>
         <d2l-breadcrumb
           text="Search Results"
@@ -189,12 +168,6 @@ export class DetailsPage extends LitElement {
             <div class="value">${this.image?.keywords?.join(", ")}</div>
           </div>
         </div>
-      </div>
-
-      <div class="footer">
-        <d2l-button primary @click=${this._next}>Next</d2l-button>
-        <d2l-button @click=${this._back}>Back</d2l-button>
-        <d2l-button @click=${this._cancel}>Cancel</d2l-button>
       </div>
     `;
   }

@@ -10,10 +10,6 @@ LTI.setup(
     url: process.env.MONGODB_URI,
   },
   {
-    appRoute: "/lti/launch",
-    loginRoute: "/lti/login",
-    keysetRoute: "/lti/keys",
-    dynRegRoute: "/lti/register",
     staticPath: publicPath,
     cookies: {
       secure: !isDev,
@@ -31,20 +27,20 @@ LTI.onConnect((token, req, res) => {
 
 LTI.onDeepLinking((token, req, res) => {
   console.log("⚠️onDeepLinking Launch⚠️");
-  return LTI.redirect(res, "/lti/deeplink", { newResource: true });
+  return LTI.redirect(res, "/deeplink", { newResource: true });
 });
 
-LTI.app.get("/lti/deeplink", (req, res) => {
+LTI.app.get("/deeplink", (req, res) => {
   res.sendFile(path.join(publicPath, "index.html"));
 });
 
-LTI.app.post("/lti/deeplink", async (req, res) => {
+LTI.app.post("/deeplink", async (req, res) => {
   const selection = req.body.product;
   const items = [
     {
       type: "ltiResourceLink",
       title: selection,
-      url: `${process.env.APP_URL}/lti/launch`,
+      url: `${process.env.APP_URL}`,
       custom: { product: selection },
     },
   ];

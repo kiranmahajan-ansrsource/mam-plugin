@@ -14,38 +14,6 @@ interface ImageData {
 @customElement("insert-page")
 export class InsertPage extends LitElement {
   static styles = css`
-    :host {
-      display: flex;
-      flex-direction: column;
-      min-height: 100vh;
-      padding: 24px;
-      max-width: 960px;
-      margin: 0 auto;
-      box-sizing: border-box;
-      font-family: sans-serif;
-    }
-
-    .header {
-      margin-bottom: 16px;
-    }
-
-    .heading {
-      font-weight: bold;
-      font-size: 20px;
-      margin-bottom: 4px;
-      color: black;
-    }
-
-    .subheading {
-      font-weight: bold;
-      font-size: 16px;
-      color: black;
-      margin-bottom: 20px;
-    }
-
-    d2l-heading {
-      color: black;
-    }
 
     d2l-breadcrumbs {
       margin-bottom: 24px;
@@ -82,13 +50,7 @@ export class InsertPage extends LitElement {
       margin-top: 8px;
     }
 
-    .footer {
-      display: flex;
-      justify-content: flex-start;
-      margin-top: 32px;
-      gap: 12px;
-    }
-  `;
+   `;
 
   @state() private image: ImageData = { id: "", name: "" };
   @state() private altText: string = "";
@@ -100,7 +62,7 @@ export class InsertPage extends LitElement {
     if (state?.image) {
       this.image = state.image;
     } else {
-      Router.go("/lti/deeplink");
+      Router.go("/deeplink");
     }
   }
 
@@ -137,20 +99,15 @@ export class InsertPage extends LitElement {
 
   private _back() {
     history.pushState({ image: this.image }, "", "/details");
-    Router.go("/lti/details");
+    Router.go("/details");
   }
 
   private _cancel() {
-    Router.go("/lti/deeplink");
+    Router.go("/deeplink");
   }
 
   render() {
     return html`
-      <div class="header">
-        <div class="heading">Insert Stuff</div>
-        <div class="subheading">Mayo Clinic MAM (Media Asset Management)</div>
-      </div>
-
       <d2l-breadcrumbs>
         <d2l-breadcrumb text="Search" @click=${this._cancel}></d2l-breadcrumb>
         <d2l-breadcrumb text="Details" @click=${this._back}></d2l-breadcrumb>
@@ -176,12 +133,6 @@ export class InsertPage extends LitElement {
             ></d2l-input-checkbox>
           </div>
         </div>
-      </div>
-
-      <div class="footer">
-        <d2l-button primary @click=${this._insert}>Insert</d2l-button>
-        <d2l-button @click=${this._back}>Back</d2l-button>
-        <d2l-button @click=${this._cancel}>Cancel</d2l-button>
       </div>
     `;
   }

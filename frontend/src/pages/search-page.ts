@@ -12,6 +12,10 @@ interface ImageItem {
   id: string;
   name: string;
   thumbnailUrl: string;
+  fullImageUrl?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+  createDate?: string;
 }
 
 @customElement("search-page")
@@ -54,6 +58,9 @@ export class SearchPage extends LitElement {
       border-radius: 6px;
       padding: 12px;
     }
+    d2l-loading-spinner {
+      margin: auto;
+    }
   `;
 
   @state() private searchTerm = "";
@@ -87,6 +94,10 @@ export class SearchPage extends LitElement {
         id: item.SystemIdentifier,
         name: item.Title,
         thumbnailUrl: item.Path_TR7?.URI || "",
+        fullImageUrl: item.Path_TR1?.URI || "",
+        imageWidth: item.Path_TR1?.Width,
+        imageHeight: item.Path_TR1?.Height,
+        createDate: item.CreateDate || "",
       }));
       this.totalCount = res.data.total || items.length;
       this.page = 1;
@@ -114,6 +125,10 @@ export class SearchPage extends LitElement {
         id: item.SystemIdentifier,
         name: item.Title,
         thumbnailUrl: item.Path_TR7?.URI || "",
+        fullImageUrl: item.Path_TR1?.URI || "",
+        imageWidth: item.Path_TR1?.Width,
+        imageHeight: item.Path_TR1?.Height,
+        createDate: item.CreateDate || "",
       }));
 
       this.results = [...this.results, ...newImages];
@@ -148,7 +163,7 @@ export class SearchPage extends LitElement {
       ></d2l-input-search>
 
       ${this.loading
-        ? html`<d2l-loading-spinner center></d2l-loading-spinner>`
+        ? html`<d2l-loading-spinner size="100"></d2l-loading-spinner>`
         : html`
             <div class="thumbnail-container">
               ${this.results.map(

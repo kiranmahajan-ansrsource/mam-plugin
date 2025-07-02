@@ -9,6 +9,10 @@ interface ImageItem {
   id: string;
   name: string;
   thumbnailUrl: string;
+  fullImageUrl?: string;
+  imageWidth?: number;
+  imageHeight?: number;
+  createDate?: string;
 }
 
 @customElement("details-page")
@@ -38,6 +42,10 @@ export class DetailsPage extends LitElement {
     id: "",
     name: "",
     thumbnailUrl: "",
+    fullImageUrl: "",
+    imageWidth: undefined,
+    imageHeight: undefined,
+    createDate: "",
   };
 
   firstUpdated() {
@@ -101,9 +109,13 @@ export class DetailsPage extends LitElement {
             <dt>Collection</dt>
             <dd>-</dd>
             <dt>Creation Date</dt>
-            <dd>-</dd>
+            <dd>${this.image.createDate || "-"}</dd>
             <dt>Image Size</dt>
-            <dd>-</dd>
+            <dd>
+              ${this.image.imageWidth && this.image.imageHeight
+                ? `${this.image.imageWidth} x ${this.image.imageHeight}`
+                : "-"}
+            </dd>
             <dt>Usage Notes</dt>
             <dd>-</dd>
             <dt>Keywords</dt>

@@ -17,6 +17,10 @@ export class InsertStuffApp extends LitElement {
   @state() private view: "search" | "details" | "insert" = "search";
   @state() private selectedImage: any = null;
 
+  firstUpdated() {
+    this._updateModal();
+  }
+
   updated() {
     this._updateModal();
   }
@@ -44,24 +48,36 @@ export class InsertStuffApp extends LitElement {
     });
   }
 
-  private _goToSearch = () => {
+  private _goToSearch = async () => {
     this.view = "search";
+    await this.updateComplete;
     this._updateModal();
   };
 
-  private _goToDetails = () => {
+  private _goToDetails = async () => {
     this.view = "details";
+    await this.updateComplete;
     this._updateModal();
   };
 
-  private _goToInsert = () => {
+  private _goToInsert = async () => {
     this.view = "insert";
+    await this.updateComplete;
     this._updateModal();
   };
 
   private _handleImageSelected = (e: CustomEvent) => {
+    const image = e.detail;
+    if (image) {
+      this.selectedImage = image;
+      this._goToDetails();
+    } else {
+      this._goToSearch();
+    }
+  };
+  private _handleProceedToInsert = (e: CustomEvent) => {
     this.selectedImage = e.detail;
-    this._goToDetails();
+    this._goToInsert();
   };
 
   private _handleInsert = () => {
@@ -78,8 +94,15 @@ export class InsertStuffApp extends LitElement {
             @image-selected=${this._handleImageSelected}
           ></search-page>`
         : this.view === "details"
-        ? html`<details-page .image=${this.selectedImage}></details-page>`
-        : html`<insert-page .image=${this.selectedImage}></insert-page>`}
+        ? html`<details-page
+            .image=${this.selectedImage}
+            @proceed-to-insert=${this._handleProceedToInsert}
+            @image-selected=${this._handleImageSelected}
+          ></details-page>`
+        : html`<insert-page
+            .image=${this.selectedImage}
+            @image-selected=${this._handleImageSelected}
+          ></insert-page>`}
     `;
   }
 }

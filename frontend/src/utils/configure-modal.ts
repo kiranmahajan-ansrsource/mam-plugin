@@ -5,9 +5,7 @@ interface ModalButtonConfig {
   insertMode?: boolean;
 }
 
-let _backHandler: EventListener | null = null;
-let _nextHandler: EventListener | null = null;
-let _cancelHandler: EventListener | null = null;
+let _handler: EventListener | null = null;
 
 export function configureModal({
   back,
@@ -34,37 +32,26 @@ export function configureModal({
     "*"
   );
 
-  if (_backHandler) window.removeEventListener("message", _backHandler);
-  if (_nextHandler) window.removeEventListener("message", _nextHandler);
-  if (_cancelHandler) window.removeEventListener("message", _cancelHandler);
-
-  if (back) {
-    _backHandler = (e) => {
-      const event = e as MessageEvent;
-      if (event.data?.subject === "lti.back") back();
-    };
-    window.addEventListener("message", _backHandler);
-  } else {
-    _backHandler = null;
+  if (_handler) {
+    window.removeEventListener("message", _handler);
   }
 
-  if (next) {
-    _nextHandler = (e) => {
-      const event = e as MessageEvent;
-      if (event.data?.subject === "lti.next") next();
-    };
-    window.addEventListener("message", _nextHandler);
-  } else {
-    _nextHandler = null;
-  }
+  _handler = (e: Event) => {
+    const event = e as MessageEvent;
+    if (!event.data || typeof event.data.subject !== "string") return;
 
-  if (cancel) {
-    _cancelHandler = (e) => {
-      const event = e as MessageEvent;
-      if (event.data?.subject === "lti.cancel") cancel();
-    };
-    window.addEventListener("message", _cancelHandler);
-  } else {
-    _cancelHandler = null;
-  }
+    switch (event.data.subject) {
+      case "lti.back":
+        back?.();
+        break;
+      case "lti.next":
+        next?.();
+        break;
+      case "lti.cancel":
+        cancel?.();
+        break;
+    }
+  };
+
+  window.addEventListener("message", _handler);
 }

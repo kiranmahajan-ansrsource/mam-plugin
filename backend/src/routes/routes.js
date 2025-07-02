@@ -8,8 +8,16 @@ const publicPath = path.join(__dirname, "../../public");
 
 router.get("/search", async (req, res) => {
   try {
+    console.log("[/search] Query:", req.query);
+    console.log(
+      "[/search] MAYO_IMG_SEARCH_URL:",
+      process.env.MAYO_IMG_SEARCH_URL
+    );
+
     const token = res.locals.token;
     const accessToken = await getAccessToken();
+
+    console.log("[/search] Got Mayo access token:", !!accessToken);
 
     const mayoResponse = await axios.get(process.env.MAYO_IMG_SEARCH_URL, {
       headers: { Authorization: `Bearer ${accessToken}` },
@@ -29,7 +37,13 @@ router.get("/search", async (req, res) => {
 
     res.json({ results: items, total });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    console.error("[/search] ERROR:", err && err.stack ? err.stack : err);
+    if (err.response) {
+      console.error("[/search] Mayo API error response:", err.response.data);
+      res.status(err.response.status || 500).json({ error: err.response.data });
+    } else {
+      res.status(500).json({ error: err.message });
+    }
   }
 });
 

@@ -24,30 +24,23 @@ export class SearchPage extends LitElement {
       color: #555;
       margin-bottom: 8px;
     }
-
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 16px;
-      margin-top: 16px;
-      margin-bottom: 10px;
-    }
-
-    .thumbnail {
-      width: 100%;
-      height: 100px;
-      background-color: #ccc;
+    .thumbnail-container {
+      padding: 1rem;
       display: flex;
       justify-content: center;
-      align-items: center;
-      font-size: 0.9rem;
-      color: #666;
-      border: 2px solid transparent;
-      cursor: pointer;
+      gap: 1rem;
+      flex-wrap: wrap;
+      height: 100%;
+      width: 100%;
     }
-
-    .thumbnail:hover {
-      border-color: #007cbb;
+    .thumbnail {
+      width: 300px;
+      height: 200px;
+    }
+    .thumbnail > img {
+      height: 100%;
+      width: 100%;
+      object-fit: cover;
     }
 
     d2l-loading-spinner {
@@ -68,14 +61,6 @@ export class SearchPage extends LitElement {
 
     d2l-alert {
       margin-top: 20px;
-    }
-
-    .footer {
-      display: flex;
-      justify-content: flex-start;
-      gap: 12px;
-      margin-top: auto;
-      padding-top: 32px;
     }
   `;
 
@@ -202,10 +187,9 @@ export class SearchPage extends LitElement {
               <strong>${this.totalCount}</strong> results (Page ${this.page})
             </div>
 
-            <div class="grid">
-              ${this.results.map((item) => {
-                console.log(item.thumbnailUrl);
-                return html`
+            <div class="thumbnail-container">
+              ${this.results.map(
+                (item) => html`
                   <div
                     class="thumbnail"
                     @click=${() => this._selectImage(item)}
@@ -213,11 +197,11 @@ export class SearchPage extends LitElement {
                     <img
                       src=${item.thumbnailUrl}
                       alt=${item.name || "Image"}
-                      style="max-width:100%; max-height:100px; object-fit:contain;"
+                      crossorigin="anonymous"
                     />
                   </div>
-                `;
-              })}
+                `
+              )}
             </div>
 
             ${this.results.length < this.totalCount

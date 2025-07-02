@@ -17,7 +17,7 @@ export class InsertStuffApp extends LitElement {
   @state() private view: "search" | "details" | "insert" = "search";
   @state() private selectedImage: any = null;
 
-  firstUpdated() {
+  updated() {
     this._updateModal();
   }
 

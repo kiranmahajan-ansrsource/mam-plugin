@@ -26,7 +26,8 @@ router.get("/search", async (req, res) => {
         pagenumber: req.query.page || 1,
         countperpage: req.query.limit || 18,
         format: "json",
-        fields: "SystemIdentifier,Title,Path_TR7",
+        fields:
+          "Path_TR7,Path_TR1,Title,SystemIdentifier,IncludeInheritedKeywords,CreateDate",
       },
     });
 

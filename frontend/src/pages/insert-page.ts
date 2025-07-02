@@ -1,139 +1,104 @@
 import { LitElement, html, css } from "lit";
-import { customElement, state } from "lit/decorators.js";
-import "@brightspace-ui/core/components/inputs/input-textarea.js";
-import "@brightspace-ui/core/components/inputs/input-checkbox.js";
-import "@brightspace-ui/core/components/button/button.js";
-import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
-import { Router } from "@vaadin/router";
+import { customElement, property, state } from "lit/decorators.js";
 import { configureModal } from "../utils/configure-modal";
-
-interface ImageData {
-  id: string;
-  name: string;
-}
+import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
 
 @customElement("insert-page")
 export class InsertPage extends LitElement {
   static styles = css`
-    d2l-breadcrumbs {
-      margin-bottom: 24px;
-    }
-
     .main {
-      flex: 1;
       display: flex;
-      gap: 32px;
-      flex-wrap: wrap;
+      gap: 1rem;
+      margin-top: 1rem;
     }
-
     .preview {
       width: 280px;
-      height: 280px;
-      background-color: #ddd;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      font-size: 1rem;
-      color: #999;
+      height: 180px;
       border: 1px solid #ccc;
     }
-
-    .form-section {
-      flex: 1;
-      min-width: 300px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .checkbox {
-      margin-top: 8px;
+    .preview img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
   `;
 
-  @state() private image: ImageData = { id: "", name: "" };
-  @state() private altText: string = "";
-  @state() private isDecorative: boolean = false;
+  @property({ type: Object }) image: any = null;
+  @state() private altText = "";
+  @state() private decorative = false;
 
-  private _handleAltTextChange(e: Event) {
-    const target = e.target as HTMLTextAreaElement;
-    this.altText = target.value;
-  }
-
-  private _toggleDecorative(e: Event) {
-    const target = e.target as HTMLInputElement;
-    this.isDecorative = target.checked;
-    if (this.isDecorative) this.altText = "";
-  }
-
-  private _insert() {
-    const payload = {
-      image: this.image,
-      altText: this.isDecorative ? null : this.altText,
-      decorative: this.isDecorative,
-    };
-
-    console.log("Insert payload:", payload);
-
-    this.dispatchEvent(
-      new CustomEvent("insert-image", {
-        detail: payload,
-        bubbles: true,
-        composed: true,
-      })
-    );
-
-    alert("Image inserted successfully!");
-  }
-
-  connectedCallback() {
-    super.connectedCallback();
-    const state = history.state;
-    if (state?.image) {
-      this.image = state.image;
-    } else {
-      Router.go("/deeplink");
-    }
-
+  firstUpdated() {
+    this.altText = this.image?.name || "";
     configureModal({
-      back: () => {
-        history.pushState({ image: this.image }, "", "/details");
-        Router.go("/details");
-      },
-      next: () => this._insert(),
-      cancel: () => Router.go("/deeplink"),
+      back: () =>
+        this.dispatchEvent(
+          new CustomEvent("image-selected", {
+            detail: this.image,
+            bubbles: true,
+            composed: true,
+          })
+        ),
+      next: this.triggerInsert,
+      cancel: () => window.parent.postMessage({ subject: "lti.close" }, "*"),
       insertMode: true,
     });
   }
 
+  triggerInsert = () => {
+    const payload = {
+      image: this.image,
+      altText: this.decorative ? null : this.altText,
+      decorative: this.decorative,
+    };
+    console.log("Insert payload:", payload);
+    alert(" Inserted!");
+    window.parent.postMessage({ subject: "lti.close" }, "*");
+  };
+  handleBackToSearch = (e: Event) => {
+    e.preventDefault();
+    this.dispatchEvent(
+      new CustomEvent("image-selected", {
+        detail: null,
+        bubbles: true,
+        composed: true,
+      })
+    );
+  };
   render() {
     return html`
       <d2l-breadcrumbs>
-        <d2l-breadcrumb text="Search"></d2l-breadcrumb>
-        <d2l-breadcrumb text="Details"></d2l-breadcrumb>
-        <d2l-breadcrumb text="Insert"></d2l-breadcrumb>
-      </d2l-breadcrumbs>
-
-      <div class="main">
-        <div class="preview">IMAGE PLACEHOLDER</div>
-
-        <div class="form-section">
-          <d2l-input-textarea
-            label="Alternative Text (Describe your image)"
-            .value=${this.altText}
-            ?disabled=${this.isDecorative}
-            @input=${this._handleAltTextChange}
-          ></d2l-input-textarea>
-
-          <div class="checkbox">
+        <d2l-breadcrumb
+          href="#"
+          text="Search Results"
+          @click=${this.handleBackToSearch}
+          style="cursor:pointer;"
+        ></d2l-breadcrumb>
+        <div class="main">
+          <div class="preview">
+            <img
+              src=${this.image?.thumbnailUrl}
+              alt="preview"
+              crossorigin="anonymous"
+            />
+          </div>
+          <div>
+            <d2l-input-textarea
+              label="Alt Text"
+              .value=${this.altText}
+              ?disabled=${this.decorative}
+              @input=${(e: any) => (this.altText = e.target.value)}
+            ></d2l-input-textarea>
             <d2l-input-checkbox
               label="This image is decorative"
-              .checked=${this.isDecorative}
-              @change=${this._toggleDecorative}
+              .checked=${this.decorative}
+              @change=${(e: any) => {
+                this.decorative = e.target.checked;
+                if (this.decorative) this.altText = "";
+              }}
             ></d2l-input-checkbox>
           </div>
         </div>
-      </div>
+      </d2l-breadcrumbs>
     `;
   }
 }

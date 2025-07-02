@@ -1,19 +1,85 @@
-import { Router } from "@vaadin/router";
-import "./index.css";
+import { LitElement, html, css } from "lit";
+import { customElement, state } from "lit/decorators.js";
 import "./pages/search-page.ts";
 import "./pages/details-page.ts";
 import "./pages/insert-page.ts";
+import { configureModal } from "./utils/configure-modal";
 
-const outlet: HTMLElement | null = document.getElementById("outlet");
+@customElement("insert-stuff-app")
+export class InsertStuffApp extends LitElement {
+  static styles = css`
+    :host {
+      display: block;
+      padding: 16px;
+    }
+  `;
 
-if (outlet) {
-  const router = new Router(outlet);
+  @state() private view: "search" | "details" | "insert" = "search";
+  @state() private selectedImage: any = null;
 
-  router.setRoutes([
-    { path: "/deeplink", component: "search-page" },
-    { path: "/details", component: "details-page" },
-    { path: "/insert", component: "insert-page" },
-  ]);
-} else {
-  console.error("Router outlet not found");
+  firstUpdated() {
+    this._updateModal();
+  }
+
+  private _updateModal() {
+    configureModal({
+      back:
+        this.view === "details"
+          ? this._goToSearch
+          : this.view === "insert"
+          ? this._goToDetails
+          : null,
+      next:
+        this.view === "search"
+          ? null
+          : this.view === "details"
+          ? this._goToInsert
+          : this._handleInsert,
+      cancel: () => {
+        if (confirm("Are you sure you want to cancel?")) {
+          window.parent.postMessage({ subject: "lti.close" }, "*");
+        }
+      },
+      insertMode: this.view === "insert",
+    });
+  }
+
+  private _goToSearch = () => {
+    this.view = "search";
+    this._updateModal();
+  };
+
+  private _goToDetails = () => {
+    this.view = "details";
+    this._updateModal();
+  };
+
+  private _goToInsert = () => {
+    this.view = "insert";
+    this._updateModal();
+  };
+
+  private _handleImageSelected = (e: CustomEvent) => {
+    this.selectedImage = e.detail;
+    this._goToDetails();
+  };
+
+  private _handleInsert = () => {
+    const insertComponent = this.shadowRoot!.querySelector(
+      "insert-page"
+    ) as any;
+    insertComponent?.triggerInsert?.();
+  };
+
+  render() {
+    return html`
+      ${this.view === "search"
+        ? html`<search-page
+            @image-selected=${this._handleImageSelected}
+          ></search-page>`
+        : this.view === "details"
+        ? html`<details-page .image=${this.selectedImage}></details-page>`
+        : html`<insert-page .image=${this.selectedImage}></insert-page>`}
+    `;
+  }
 }

@@ -1,164 +1,115 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
-import "@brightspace-ui/core/components/button/button.js";
-import "@brightspace-ui/core/components/typography/typography.js";
-import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
-import { Router } from "@vaadin/router";
 import { configureModal } from "../utils/configure-modal";
+import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
+import "@brightspace-ui/core/components/description-list/description-list-wrapper.js";
+import { descriptionListStyles } from "@brightspace-ui/core/components/description-list/description-list-wrapper.js";
 
-interface ImageData {
+interface ImageItem {
   id: string;
   name: string;
-  folder: string;
-  usageNotes: string;
-  size: string;
-  createdOn: string;
-  keywords: string[];
+  thumbnailUrl: string;
 }
 
 @customElement("details-page")
 export class DetailsPage extends LitElement {
-  static styles = css`
-    .header {
-      margin-bottom: 16px;
-      font-weight: bold;
-      font-size: 20px;
-      color: black;
-    }
-    .subheading {
-      font-weight: bold;
-      font-size: 16px;
-      color: black;
-      margin-bottom: 20px;
-    }
+  static styles = [
+    descriptionListStyles,
+    css`
+      .container {
+        display: flex;
+        gap: 2rem;
+        margin-top: 1rem;
+      }
+      .preview {
+        width: 480px;
+        /* height: 580px; */
+        border: 1px solid #ccc;
+      }
+      .preview img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+    `,
+  ];
 
-    d2l-heading {
-      color: black;
-    }
-
-    d2l-breadcrumbs {
-      margin-bottom: 24px;
-    }
-
-    .content {
-      flex: 1;
-      display: flex;
-      gap: 32px;
-      flex-wrap: wrap;
-    }
-
-    .image-box {
-      width: 240px;
-      height: 240px;
-      border: 1px solid #ccc;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #888;
-      font-size: 0.9rem;
-      background: #f9f9f9;
-    }
-
-    .details {
-      flex: 1;
-      min-width: 300px;
-      font-size: 0.9rem;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .detail-row {
-      display: flex;
-      flex-wrap: wrap;
-    }
-
-    .label {
-      width: 160px;
-      font-weight: bold;
-      color: black;
-    }
-
-    .value {
-      flex: 1;
-      color: black;
-    }
-  `;
-
-  @property({ type: Object })
-  image: ImageData = {
-    id: "img-0",
-    name: "Image name",
-    folder: "name_folder_anything",
-    usageNotes: "Additional information on how assets can be used or not used.",
-    size: "800 x 1200 px",
-    createdOn: "2025-11-24 16:45:43",
-    keywords: ["Keyword1", "Keyword2", "Keyword3"],
+  @property({ type: Object }) image: ImageItem = {
+    id: "",
+    name: "",
+    thumbnailUrl: "",
   };
 
-  connectedCallback() {
-    super.connectedCallback();
-    const state = history.state;
-    if (state?.image) {
-      this.image = state.image;
-    }
-
+  firstUpdated() {
     configureModal({
-      back: () => {
-        history.pushState({}, "", "/deeplink");
-        Router.go("/deeplink");
-      },
-      next: () => {
-        history.pushState({ image: this.image }, "", "/insert");
-        Router.go("/insert");
-      },
-      cancel: () => Router.go("/deeplink"),
+      back: () =>
+        this.dispatchEvent(
+          new CustomEvent("image-selected", {
+            detail: null,
+            bubbles: true,
+            composed: true,
+          })
+        ),
+      next: () =>
+        this.dispatchEvent(
+          new CustomEvent("proceed-to-insert", {
+            detail: this.image,
+            bubbles: true,
+            composed: true,
+          })
+        ),
+      cancel: () => window.parent.postMessage({ subject: "lti.close" }, "*"),
     });
   }
+  handleBackToSearch = (e: Event) => {
+    e.preventDefault();
+    this.dispatchEvent(
+      new CustomEvent("image-selected", {
+        detail: null,
+        bubbles: true,
+        composed: true,
+      })
+    );
+  };
 
   render() {
     return html`
       <d2l-breadcrumbs>
-        <d2l-breadcrumb text="Search Results"></d2l-breadcrumb>
-        <d2l-breadcrumb text="Image Details"></d2l-breadcrumb>
+        <d2l-breadcrumb
+          href="#"
+          text="Search Results"
+          @click=${this.handleBackToSearch}
+          style="cursor:pointer;"
+        ></d2l-breadcrumb>
       </d2l-breadcrumbs>
-
-      <div class="content">
-        <div class="image-box">IMAGE PLACEHOLDER</div>
-        <div class="details">
-          <div class="detail-row">
-            <div class="label">Title</div>
-            <div class="value">${this.image.name}</div>
-          </div>
-          <div class="detail-row">
-            <div class="label">Unique Identifier</div>
-            <div class="value">${this.image.folder}</div>
-          </div>
-          <div class="detail-row">
-            <div class="label">Content Type</div>
-            <div class="value">Photograph</div>
-          </div>
-          <div class="detail-row">
-            <div class="label">Collection</div>
-            <div class="value">General Library</div>
-          </div>
-          <div class="detail-row">
-            <div class="label">Creation Date</div>
-            <div class="value">${this.image.createdOn}</div>
-          </div>
-          <div class="detail-row">
-            <div class="label">Image Size</div>
-            <div class="value">${this.image.size}</div>
-          </div>
-          <div class="detail-row">
-            <div class="label">Usage Notes</div>
-            <div class="value">${this.image.usageNotes}</div>
-          </div>
-          <div class="detail-row">
-            <div class="label">Keywords</div>
-            <div class="value">${this.image?.keywords?.join(", ")}</div>
-          </div>
+      <div class="container">
+        <div class="preview">
+          <img
+            src=${this.image.thumbnailUrl}
+            alt=${this.image.name}
+            crossorigin="anonymous"
+          />
         </div>
+        <d2l-dl-wrapper>
+          <dl>
+            <dt>Title</dt>
+            <dd>${this.image.name}</dd>
+            <dt>Unique Identifier</dt>
+            <dd>${this.image.id}</dd>
+            <dt>Content Type</dt>
+            <dd>Image</dd>
+            <dt>Collection</dt>
+            <dd>-</dd>
+            <dt>Creation Date</dt>
+            <dd>-</dd>
+            <dt>Image Size</dt>
+            <dd>-</dd>
+            <dt>Usage Notes</dt>
+            <dd>-</dd>
+            <dt>Keywords</dt>
+            <dd>-</dd>
+          </dl>
+        </d2l-dl-wrapper>
       </div>
     `;
   }

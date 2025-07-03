@@ -54,12 +54,15 @@ export function configureModal({
 
     switch (message.subject) {
       case "lti.back":
+        console.log("[LTI] Back triggered");
         back?.();
         break;
       case "lti.next":
+        console.log("[LTI] Next triggered");
         next?.();
         break;
       case "lti.cancel":
+        console.log("[LTI] Cancel triggered");
         cancel?.();
         break;
     }

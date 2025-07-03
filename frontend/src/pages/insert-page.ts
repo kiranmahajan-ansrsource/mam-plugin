@@ -45,15 +45,27 @@ export class InsertPage extends LitElement {
   }
 
   triggerInsert = () => {
-    const payload = {
-      image: this.image,
-      altText: this.decorative ? null : this.altText,
-      decorative: this.decorative,
-    };
-    console.log("Insert payload:", payload);
-    alert(" Inserted!");
+    const content = [
+      {
+        type: "image",
+        src: this.image.fullImageUrl || this.image.thumbnailUrl,
+        alt: this.decorative ? "" : this.altText,
+        title: this.image.name,
+      },
+    ];
+
+    console.log("Sending lti.insertContent payload:", content);
+
+    window.parent.postMessage(
+      {
+        subject: "lti.insertContent",
+        content,
+      },
+      "*"
+    );
     window.parent.postMessage({ subject: "lti.close" }, "*");
   };
+  
   handleBackToSearch = (e: Event) => {
     e.preventDefault();
     this.dispatchEvent(

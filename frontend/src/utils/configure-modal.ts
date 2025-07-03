@@ -13,6 +13,7 @@ export function configureModal({
   cancel,
   insertMode = false,
 }: ModalButtonConfig) {
+  
   const show = {
     back: !!back,
     next: !!next,
@@ -24,11 +25,11 @@ export function configureModal({
   };
 
   window.parent.postMessage(
-    {
+    JSON.stringify({
       subject: "lti.showButtons",
       show,
       labels,
-    },
+    }),
     "*"
   );
 
@@ -38,9 +39,18 @@ export function configureModal({
 
   _handler = (e: Event) => {
     const event = e as MessageEvent;
-    if (!event.data || typeof event.data.subject !== "string") return;
 
-    switch (event.data.subject) {
+    let message;
+    try {
+      message =
+        typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+    } catch {
+      return;
+    }
+
+    if (!message || typeof message.subject !== "string") return;
+
+    switch (message.subject) {
       case "lti.back":
         back?.();
         break;

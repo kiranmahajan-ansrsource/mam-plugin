@@ -4,13 +4,7 @@ import "./pages/search-page.ts";
 import "./pages/details-page.ts";
 import "./pages/insert-page.ts";
 import { configureModal } from "./utils/configure-modal";
-
-window.addEventListener("message", (event) => {
-  console.group("[LTI DEBUG] Message received");
-  console.log("Origin:", event.origin);
-  console.log("Data:", event.data);
-  console.groupEnd();
-});
+import { startBridgeToBrightspace } from "./utils/brightspace-bridge";
 
 @customElement("insert-stuff-app")
 export class InsertStuffApp extends LitElement {
@@ -25,6 +19,7 @@ export class InsertStuffApp extends LitElement {
   @state() private selectedImage: any = null;
 
   firstUpdated() {
+    startBridgeToBrightspace();
     this._updateModal();
   }
 

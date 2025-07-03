@@ -5,6 +5,13 @@ import "./pages/details-page.ts";
 import "./pages/insert-page.ts";
 import { configureModal } from "./utils/configure-modal";
 
+window.addEventListener("message", (event) => {
+  console.group("[LTI DEBUG] Message received");
+  console.log("Origin:", event.origin);
+  console.log("Data:", event.data);
+  console.groupEnd();
+});
+
 @customElement("insert-stuff-app")
 export class InsertStuffApp extends LitElement {
   static styles = css`

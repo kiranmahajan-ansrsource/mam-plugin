@@ -13,7 +13,6 @@ export function configureModal({
   cancel,
   insertMode = false,
 }: ModalButtonConfig) {
-  
   const show = {
     back: !!back,
     next: !!next,
@@ -33,6 +32,8 @@ export function configureModal({
     "*"
   );
 
+  console.log("[LTI] Sent button config:", { show, labels });
+
   if (_handler) {
     window.removeEventListener("message", _handler);
   }
@@ -47,6 +48,7 @@ export function configureModal({
     } catch {
       return;
     }
+    console.log("[LTI] Received message:", message);
 
     if (!message || typeof message.subject !== "string") return;
 

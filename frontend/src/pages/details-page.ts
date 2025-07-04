@@ -4,6 +4,7 @@ import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
 import "@brightspace-ui/core/components/description-list/description-list-wrapper.js";
 import { descriptionListStyles } from "@brightspace-ui/core/components/description-list/description-list-wrapper.js";
 import { getLtik } from "../utils/helper";
+import { Router } from "@vaadin/router";
 
 @customElement("details-page")
 export class DetailsPage extends LitElement {
@@ -55,7 +56,7 @@ export class DetailsPage extends LitElement {
   }
 
   private goBack() {
-    window.location.href = `/?ltik=${this.ltik}`;
+    Router.go(`/?ltik=${this.ltik}`);
   }
 
   private goNext() {
@@ -63,7 +64,7 @@ export class DetailsPage extends LitElement {
       ...this.image,
       ltik: this.ltik,
     } as any);
-    window.location.href = `/insert?${searchParams.toString()}`;
+    Router.go(`/insert?${searchParams.toString()}`);
   }
 
   render() {

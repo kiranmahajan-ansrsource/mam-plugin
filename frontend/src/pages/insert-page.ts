@@ -2,8 +2,10 @@ import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import "@brightspace-ui/core/components/inputs/input-text.js";
 import "@brightspace-ui/core/components/alert/alert.js";
+import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
 import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
 import { getLtik } from "../utils/helper";
+import { Router } from "@vaadin/router";
 
 @customElement("insert-page")
 export class InsertPage extends LitElement {
@@ -53,7 +55,7 @@ export class InsertPage extends LitElement {
       ...this.image,
       ltik: this.ltik,
     } as any);
-    window.location.href = `/details?${searchParams.toString()}`;
+    Router.go(`/details?${searchParams.toString()}`);
   }
 
   private async submitForm() {
@@ -88,6 +90,14 @@ export class InsertPage extends LitElement {
 
   render() {
     return html`
+      <d2l-breadcrumbs>
+        <d2l-breadcrumb
+          href="#"
+          text="Search Results"
+          @click=${this.goBack}
+          style="cursor:pointer;"
+        ></d2l-breadcrumb>
+      </d2l-breadcrumbs>
       <div class="container">
         <div class="preview">
           <img

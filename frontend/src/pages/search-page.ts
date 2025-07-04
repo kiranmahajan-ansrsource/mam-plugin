@@ -5,6 +5,7 @@ import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
 import "@brightspace-ui/core/components/alert/alert.js";
 import "@brightspace-ui/core/components/link/link.js";
 import { getLtik } from "../utils/helper";
+import { Router } from "@vaadin/router";
 import axios from "axios";
 
 interface ImageItem {
@@ -150,40 +151,12 @@ export class SearchPage extends LitElement {
       createDate: image.createDate || "",
       ltik: this.ltik || "",
     });
-    window.location.href = `/details?${searchParams.toString()}`;
+    Router.go(`/details?${searchParams.toString()}`);
   }
-
-  // private _submit() {
-  //   if (!this.selected) return;
-  //   const form = document.createElement("form");
-  //   form.method = "POST";
-  //   form.action = "/details";
-  //   form.style.display = "none";
-
-  //   const fields = {
-  //     id: this.selected.id,
-  //     name: this.selected.name,
-  //     fullImageUrl: this.selected.fullImageUrl,
-  //     imageWidth: this.selected.imageWidth,
-  //     imageHeight: this.selected.imageHeight,
-  //     createDate: this.selected.createDate,
-  //     ltik: this.ltik,
-  //   };
-
-  //   for (const [key, value] of Object.entries(fields)) {
-  //     const input = document.createElement("input");
-  //     input.name = key;
-  //     input.value = String(value ?? "");
-  //     form.appendChild(input);
-  //   }
-
-  //   document.body.appendChild(form);
-  //   form.submit();
-  // }
 
   render() {
     return html`
-      <h4 class="search-heading">Search by keyword to fine relevent images.</h4>
+      <h4 class="search-heading">Search by keyword to find relevant images.</h4>
       <d2l-input-search
         label="Search"
         placeholder="e.g. x-ray"

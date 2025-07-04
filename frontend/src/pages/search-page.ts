@@ -42,14 +42,34 @@ export class SearchPage extends LitElement {
       border: 1px solid #ccc;
       cursor: pointer;
       transition: transform 0.2s ease;
+      position: relative;
     }
     .thumbnail:hover {
       transform: scale(1.02);
+    }
+    .thumbnail.selected {
+      border: 3px solid #006fbf;
+      box-shadow: 0 0 10px rgba(0, 111, 191, 0.3);
     }
     .thumbnail img {
       width: 100%;
       height: 100%;
       object-fit: cover;
+    }
+    .selected-indicator {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #006fbf;
+      color: white;
+      border-radius: 50%;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: bold;
     }
     .load-more-container {
       text-align: center;
@@ -68,6 +88,14 @@ export class SearchPage extends LitElement {
       flex-direction: column;
       justify-content: center;
     }
+    .selection-info {
+      margin-top: 1rem;
+      padding: 12px;
+      background-color: #e8f5e8;
+      border: 1px solid #4caf50;
+      border-radius: 4px;
+      color: #2e7d2e;
+    }
   `;
 
   @state() private searchTerm = "";
@@ -83,11 +111,76 @@ export class SearchPage extends LitElement {
 
   firstUpdated() {
     this.ltik = getLtik();
+    this.signalInitialState();
+  }
+  private signalInitialState() {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(
+        {
+          type: "deepLinkingReady",
+          ready: false,
+          stage: "search",
+          data: {
+            hasSelection: false,
+            canProceed: false,
+          },
+        },
+        "*"
+      );
+    }
+
+    const event = new CustomEvent("d2l-content-ready", {
+      detail: {
+        ready: false,
+        stage: "search",
+        canProceed: false,
+      },
+      bubbles: true,
+    });
+    this.dispatchEvent(event);
+  }
+
+  private signalSelectionState() {
+    const hasSelection = this.selected !== null;
+
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(
+        {
+          type: "deepLinkingReady",
+          ready: hasSelection,
+          stage: "search",
+          data: {
+            hasSelection: hasSelection,
+            canProceed: hasSelection,
+            selectedImage: this.selected
+              ? {
+                  id: this.selected.id,
+                  name: this.selected.name,
+                  thumbnailUrl: this.selected.thumbnailUrl,
+                  fullImageUrl: this.selected.fullImageUrl,
+                }
+              : null,
+          },
+        },
+        "*"
+      );
+    }
+    const event = new CustomEvent("d2l-content-ready", {
+      detail: {
+        ready: hasSelection,
+        stage: "search",
+        canProceed: hasSelection,
+      },
+      bubbles: true,
+    });
+    this.dispatchEvent(event);
   }
 
   private async _triggerSearch() {
     if (!this.searchTerm.trim()) return;
     this.loading = true;
+    this.selected = null;
+    this.signalSelectionState();
     try {
       const res = await axios.get("/api/images", {
         params: { q: this.searchTerm, page: 1, limit: this.limit },
@@ -187,23 +280,12 @@ export class SearchPage extends LitElement {
     }
   }
 
-  // private _select(image: ImageItem) {
-  //   this.selected = image;
-  //   const searchParams = new URLSearchParams({
-  //     id: image.id,
-  //     name: image.name,
-  //     thumbnailUrl: image.thumbnailUrl,
-  //     fullImageUrl: image.fullImageUrl || "",
-  //     imageWidth: String(image.imageWidth || 0),
-  //     imageHeight: String(image.imageHeight || 0),
-  //     createDate: image.createDate || "",
-  //     ltik: this.ltik || "",
-  //   });
-  //   Router.go(`/details?${searchParams.toString()}`);
-  // }
-
-  private _select(image: ImageItem) {
+  private _selectImage(image: ImageItem) {
     this.selected = image;
+    this.signalSelectionState();
+  }
+  private _proceedToDetails() {
+    if (!this.selected) return;
 
     const form = document.createElement("form");
     form.method = "POST";
@@ -211,13 +293,13 @@ export class SearchPage extends LitElement {
     form.style.display = "none";
 
     const fields = {
-      id: image.id,
-      name: image.name,
-      thumbnailUrl: image.thumbnailUrl,
-      fullImageUrl: image.fullImageUrl || "",
-      imageWidth: image.imageWidth?.toString() || "",
-      imageHeight: image.imageHeight?.toString() || "",
-      createDate: image.createDate || "",
+      id: this.selected.id,
+      name: this.selected.name,
+      thumbnailUrl: this.selected.thumbnailUrl,
+      fullImageUrl: this.selected.fullImageUrl || "",
+      imageWidth: this.selected.imageWidth?.toString() || "",
+      imageHeight: this.selected.imageHeight?.toString() || "",
+      createDate: this.selected.createDate || "",
       ltik: this.ltik || "",
     };
 
@@ -230,6 +312,22 @@ export class SearchPage extends LitElement {
 
     document.body.appendChild(form);
     form.submit();
+  }
+  connectedCallback() {
+    super.connectedCallback();
+
+    window.addEventListener("message", this.handleParentMessage.bind(this));
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener("message", this.handleParentMessage.bind(this));
+  }
+
+  private handleParentMessage(event: MessageEvent) {
+    if (event.data.type === "d2l-navigate-next" && this.selected) {
+      this._proceedToDetails();
+    }
   }
 
   render() {
@@ -245,9 +343,13 @@ export class SearchPage extends LitElement {
       ></d2l-input-search>
 
       ${this.selected
-        ? html`<d2l-alert type="info"
-            >Selected: ${this.selected.name}</d2l-alert
-          >`
+        ? html`
+            <div class="selection-info">
+              ✓ Selected: ${this.selected.name}
+              <br />
+              <small>Click Next to proceed to details and preview.</small>
+            </div>
+          `
         : null}
       ${this.loading
         ? html`<div class="spinner-container">
@@ -257,12 +359,20 @@ export class SearchPage extends LitElement {
             <div class="thumbnail-container">
               ${this.results.map(
                 (img) => html`
-                  <div class="thumbnail" @click=${() => this._select(img)}>
+                  <div
+                    class="thumbnail ${this.selected?.id === img.id
+                      ? "selected"
+                      : ""}"
+                    @click=${() => this._selectImage(img)}
+                  >
                     <img
                       src=${img.thumbnailUrl}
                       alt=${img.name}
                       crossorigin="anonymous"
                     />
+                    ${this.selected?.id === img.id
+                      ? html`<div class="selected-indicator">✓</div>`
+                      : null}
                   </div>
                 `
               )}
@@ -273,10 +383,12 @@ export class SearchPage extends LitElement {
             <div class="load-more-container">
               ${this.loadingMore
                 ? html`<d2l-loading-spinner small></d2l-loading-spinner>`
-                : html` <d2l-link href="#" @click=${this.loadMore}>
+                : html`
+                    <d2l-link href="#" @click=${this.loadMore}>
                       Load More
                     </d2l-link>
-                    | ${this.results.length} of ${this.totalCount}`}
+                    | ${this.results.length} of ${this.totalCount}
+                  `}
             </div>
           `
         : null}

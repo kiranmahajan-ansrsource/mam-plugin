@@ -27,6 +27,14 @@ export class InsertPage extends LitElement {
     .form-group {
       max-width: 600px;
     }
+    .ready-indicator {
+      margin-top: 1rem;
+      padding: 10px;
+      background-color: #e8f5e8;
+      border: 1px solid #4caf50;
+      border-radius: 4px;
+      color: #2e7d2e;
+    }
   `;
 
   @state() private ltik: string = "";
@@ -34,6 +42,7 @@ export class InsertPage extends LitElement {
   @state() private submitting = false;
   @state() private submitted = false;
   @state() private error: string | null = null;
+  @state() private isReady = false;
 
   @state() private image = {
     fullImageUrl: "",
@@ -48,8 +57,49 @@ export class InsertPage extends LitElement {
       fullImageUrl: params.get("fullImageUrl") || "",
       name: params.get("name") || "",
     };
+    this.altText = this.image.name;
+
+    this.checkReadiness();
+  }
+  private checkReadiness() {
+    this.isReady = this.altText.trim().length > 0;
+
+    if (this.isReady) {
+      this.signalReadyState();
+    }
+  }
+  private signalReadyState() {
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage(
+        {
+          type: "deepLinkingReady",
+          ready: this.isReady,
+          stage: "insert",
+          data: {
+            imageUrl: this.image.fullImageUrl,
+            altText: this.altText,
+            canInsert: this.isReady,
+          },
+        },
+        "*"
+      );
+    }
+
+    const event = new CustomEvent("d2l-content-ready", {
+      detail: {
+        ready: this.isReady,
+        stage: "insert",
+        canProceed: this.isReady,
+      },
+      bubbles: true,
+    });
+    this.dispatchEvent(event);
   }
 
+  private onAltTextChange(e: any) {
+    this.altText = e.target.value;
+    this.checkReadiness();
+  }
   private goBack() {
     const searchParams = new URLSearchParams({
       ...this.image,
@@ -59,8 +109,14 @@ export class InsertPage extends LitElement {
   }
 
   private async submitForm() {
+    if (!this.altText.trim()) {
+      this.error = "Alt text is required for accessibility.";
+      return;
+    }
+
     this.submitting = true;
     this.error = null;
+
     try {
       const form = document.createElement("form");
       form.method = "POST";
@@ -88,6 +144,14 @@ export class InsertPage extends LitElement {
     }
   }
 
+  updated(changedProperties: Map<string, any>) {
+    super.updated(changedProperties);
+
+    if (changedProperties.has("altText")) {
+      this.checkReadiness();
+    }
+  }
+
   render() {
     return html`
       <d2l-breadcrumbs>
@@ -98,6 +162,7 @@ export class InsertPage extends LitElement {
           style="cursor:pointer;"
         ></d2l-breadcrumb>
       </d2l-breadcrumbs>
+
       <div class="container">
         <div class="preview">
           <img
@@ -116,10 +181,17 @@ export class InsertPage extends LitElement {
             .value=${this.altText}
             placeholder="e.g. Chest X-ray showing..."
             required
-            @input=${(e: any) => (this.altText = e.target.value)}
+            @input=${this.onAltTextChange}
           ></d2l-input-text>
         </div>
 
+        ${this.isReady
+          ? html`
+              <div class="ready-indicator">
+                ✓ Ready to insert. Alt text provided.
+              </div>
+            `
+          : ""}
         ${this.error
           ? html`<d2l-alert type="error">${this.error}</d2l-alert>`
           : null}

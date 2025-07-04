@@ -40,10 +40,41 @@ router.get("/api/images", async (req, res) => {
 router.get("/details", (req, res) => {
   res.sendFile(path.join(publicPath, "index.html"));
 });
-
 router.post("/details", (req, res) => {
   const params = new URLSearchParams(req.body).toString();
   res.redirect(`/details?${params}`);
+});
+
+router.post("/api/validate-selection", async (req, res) => {
+  try {
+    const { imageUrl, imageId, altText } = req.body;
+
+    if (!imageUrl || !imageId) {
+      return res.status(400).json({ error: "Missing required image data" });
+    }
+
+    const tempItem = {
+      type: "ltiResourceLink",
+      url: imageUrl,
+      title: "Selected Image",
+      text: altText || "Selected image for insertion",
+      custom: {
+        imageId: imageId,
+        stage: "details",
+      },
+    };
+
+    const form = await lti.DeepLinking.createDeepLinkingMessage(
+      res.locals.token,
+      tempItem,
+      { message: "Image selected. Click Next to proceed." }
+    );
+
+    return res.json({ success: true, ready: true });
+  } catch (err) {
+    console.error("[/details] ERROR:", err?.message || err);
+    return res.status(500).json({ error: "Failed to validate selection" });
+  }
 });
 
 router.post("/insert", async (req, res) => {
@@ -59,6 +90,12 @@ router.post("/insert", async (req, res) => {
       url: imageUrl,
       title: altText,
       text: altText,
+      width: 500,
+      height: 300,
+      custom: {
+        altText: altText,
+        insertType: "image",
+      },
     };
 
     const form = await lti.DeepLinking.createDeepLinkingForm(

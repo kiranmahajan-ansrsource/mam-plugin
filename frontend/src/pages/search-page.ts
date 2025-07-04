@@ -188,19 +188,49 @@ export class SearchPage extends LitElement {
     }
   }
 
+  // private _select(image: ImageItem) {
+  //   this.selected = image;
+  //   const searchParams = new URLSearchParams({
+  //     id: image.id,
+  //     name: image.name,
+  //     thumbnailUrl: image.thumbnailUrl,
+  //     fullImageUrl: image.fullImageUrl || "",
+  //     imageWidth: String(image.imageWidth || 0),
+  //     imageHeight: String(image.imageHeight || 0),
+  //     createDate: image.createDate || "",
+  //     ltik: this.ltik || "",
+  //   });
+  //   Router.go(`/details?${searchParams.toString()}`);
+  // }
+
   private _select(image: ImageItem) {
     this.selected = image;
-    const searchParams = new URLSearchParams({
+
+    const form = document.createElement("form");
+    form.method = "POST";
+    form.action = "/details";
+    form.style.display = "none";
+
+    const fields = {
       id: image.id,
       name: image.name,
       thumbnailUrl: image.thumbnailUrl,
       fullImageUrl: image.fullImageUrl || "",
-      imageWidth: String(image.imageWidth || 0),
-      imageHeight: String(image.imageHeight || 0),
+      imageWidth: image.imageWidth?.toString() || "",
+      imageHeight: image.imageHeight?.toString() || "",
       createDate: image.createDate || "",
       ltik: this.ltik || "",
-    });
-    Router.go(`/details?${searchParams.toString()}`);
+    };
+
+    for (const [key, value] of Object.entries(fields)) {
+      const input = document.createElement("input");
+      input.name = key;
+      input.value = value;
+      form.appendChild(input);
+    }
+
+    document.body.appendChild(form);
+    form.submit();
   }
 
   render() {

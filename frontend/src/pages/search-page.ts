@@ -108,6 +108,28 @@ export class SearchPage extends LitElement {
       this.page = 1;
     } catch (err) {
       console.error("Search error", err);
+      // Fallback: fetch mock images from Lorem Picsum
+      try {
+        const fallbackRes = await axios.get(
+          `https://picsum.photos/v2/list?page=1&limit=${this.limit}`
+        );
+        const items = fallbackRes.data || [];
+        this.results = items.map((item: any) => ({
+          id: item.id,
+          name: item.author,
+          thumbnailUrl: `https://picsum.photos/id/${item.id}/280/180`,
+          fullImageUrl: item.download_url,
+          imageWidth: item.width,
+          imageHeight: item.height,
+          createDate: "",
+        }));
+        this.totalCount = items.length;
+        this.page = 1;
+      } catch (fallbackErr) {
+        console.error("Fallback image fetch error", fallbackErr);
+        this.results = [];
+        this.totalCount = 0;
+      }
     } finally {
       this.loading = false;
     }
@@ -140,6 +162,27 @@ export class SearchPage extends LitElement {
       this.page = nextPage;
     } catch (err) {
       console.error("Load more error", err);
+      // Fallback: fetch more mock images from Lorem Picsum
+      try {
+        const fallbackRes = await axios.get(
+          `https://picsum.photos/v2/list?page=${nextPage}&limit=${this.limit}`
+        );
+        const items = fallbackRes.data || [];
+        const newImages = items.map((item: any) => ({
+          id: item.id,
+          name: item.author,
+          thumbnailUrl: `https://picsum.photos/id/${item.id}/280/180`,
+          fullImageUrl: item.download_url,
+          imageWidth: item.width,
+          imageHeight: item.height,
+          createDate: "",
+        }));
+        this.results = [...this.results, ...newImages];
+        this.page = nextPage;
+        this.totalCount = this.results.length;
+      } catch (fallbackErr) {
+        console.error("Fallback load more error", fallbackErr);
+      }
     } finally {
       this.loadingMore = false;
     }

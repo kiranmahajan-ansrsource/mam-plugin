@@ -193,6 +193,11 @@ export class SearchPage extends LitElement {
         .value=${this.searchTerm}
       ></d2l-input-search>
 
+      ${this.selected
+        ? html`<d2l-alert type="info"
+            >Selected: ${this.selected.name}</d2l-alert
+          >`
+        : null}
       ${this.loading
         ? html`<div class="loader-container">
             <d2l-loading-spinner size="100"></d2l-loading-spinner>

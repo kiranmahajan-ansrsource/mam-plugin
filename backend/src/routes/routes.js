@@ -6,25 +6,20 @@ const { getAccessToken } = require("../controllers/mayo.controller");
 
 const publicPath = path.join(__dirname, "../../public");
 
-router.get("/search", async (req, res) => {
+router.get("/deeplink", (req, res) => {
+  res.sendFile(path.join(publicPath, "index.html"));
+});
+
+router.get("/api/images", async (req, res) => {
   try {
-    console.log("[/search] Query:", req.query);
-    console.log(
-      "[/search] MAYO_IMG_SEARCH_URL:",
-      process.env.MAYO_IMG_SEARCH_URL
-    );
-
-    const token = res.locals.token;
     const accessToken = await getAccessToken();
-
-    console.log("[/search] Got Mayo access token:", !!accessToken);
 
     const mayoResponse = await axios.get(process.env.MAYO_IMG_SEARCH_URL, {
       headers: { Authorization: `Bearer ${accessToken}` },
       params: {
-        query: req.query.q || "x-ray",
-        pagenumber: req.query.page || 1,
-        countperpage: req.query.limit || 18,
+        query: req.query.q,
+        pagenumber: req.query.page,
+        countperpage: req.query.limit,
         format: "json",
         fields:
           "Path_TR7,Path_TR1,Title,SystemIdentifier,IncludeInheritedKeywords,CreateDate",
@@ -34,51 +29,45 @@ router.get("/search", async (req, res) => {
     const items = mayoResponse?.data?.APIResponse?.Items || [];
     const total = mayoResponse?.data?.APIResponse?.GlobalInfo?.TotalCount || 0;
 
-    console.log("[MAYO SEARCH] Mayo API returned items:", items);
-
     res.json({ results: items, total });
   } catch (err) {
-    console.error("[/search] ERROR:", err && err.stack ? err.stack : err);
-    if (err.response) {
-      console.error("[/search] Mayo API error response:", err.response.data);
-      res.status(err.response.status || 500).json({ error: err.response.data });
-    } else {
-      res.status(500).json({ error: err.message });
-    }
+    console.error("[/api/images] ERROR:", err?.message || err);
+    const status = err.response?.status || 500;
+    res.status(status).json({ error: err.message });
   }
 });
 
-router.get("/deeplink", (req, res) => {
+router.get("/details", (req, res) => {
   res.sendFile(path.join(publicPath, "index.html"));
 });
 
-// optional for now since no post request is being made we are just getting html
-router.post("/deeplink", async (req, res) => {
+router.post("/insert", async (req, res) => {
   try {
-    const resource = req.body;
+    const { imageUrl, altText } = req.body;
 
-    const items = {
-      type: "ltiResourceLink",
-      title: "Ltijs Demo",
-      custom: {
-        name: resource.name,
-        value: resource.value,
-      },
+    if (!imageUrl || !altText) {
+      return res.status(400).send("Missing imageUrl or altText");
+    }
+
+    const item = {
+      type: "image",
+      url: imageUrl,
+      alt: altText,
+      title: altText,
     };
 
     const form = await lti.DeepLinking.createDeepLinkingForm(
       res.locals.token,
-      items,
-      { message: "Successfully Registered" }
+      item,
+      { message: "Image successfully inserted!" }
     );
-    if (form) return res.send(form);
-    return res.sendStatus(500);
+
+    return res.send(form);
   } catch (err) {
-    console.log(err.message);
-    return res.status(500).send(err.message);
+    console.error("[/insert] ERROR:", err?.message || err);
+    return res.status(500).send("Failed to insert image.");
   }
 });
-// Ignore above for now
 
 router.get("/*splat", (req, res) => {
   res.sendFile(path.join(publicPath, "index.html"));

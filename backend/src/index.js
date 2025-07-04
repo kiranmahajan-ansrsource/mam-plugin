@@ -21,12 +21,10 @@ lti.setup(
 lti.whitelist("/assets", "/favicon.ico", "/lang");
 
 lti.onConnect(async (token, req, res) => {
-  console.log("⚠️onConnect Launch⚠️ ", token);
-  return res.send("User connected!");
+  return res.sendFile(path.join(publicPath, "index.html"));
 });
 
 lti.onDeepLinking(async (token, req, res) => {
-  console.log("⚠️onDeepLinking Launch⚠️", token);
   return lti.redirect(res, "/deeplink", { newResource: true });
 });
 

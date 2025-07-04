@@ -41,6 +41,11 @@ router.get("/details", (req, res) => {
   res.sendFile(path.join(publicPath, "index.html"));
 });
 
+router.post("/details", (req, res) => {
+  const params = new URLSearchParams(req.body).toString();
+  res.redirect(`/details?${params}`);
+});
+
 router.post("/insert", async (req, res) => {
   try {
     const { imageUrl, altText } = req.body;

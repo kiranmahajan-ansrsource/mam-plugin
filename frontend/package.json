@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@brightspace-ui/core": "^3.148.5",
-    "@lit-labs/router": "^0.1.4",
+    "@vaadin/router": "^2.0.0",
     "axios": "^1.10.0",
     "lit": "^3.3.0"
   },

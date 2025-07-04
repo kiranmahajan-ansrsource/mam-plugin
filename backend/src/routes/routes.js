@@ -57,8 +57,8 @@ router.post("/insert", async (req, res) => {
     const item = {
       type: "image",
       url: imageUrl,
-      alt: altText,
       title: altText,
+      text: altText,
     };
 
     const form = await lti.DeepLinking.createDeepLinkingForm(

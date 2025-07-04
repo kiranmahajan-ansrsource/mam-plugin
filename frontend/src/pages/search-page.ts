@@ -5,7 +5,6 @@ import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
 import "@brightspace-ui/core/components/alert/alert.js";
 import "@brightspace-ui/core/components/link/link.js";
 import { getLtik } from "../utils/helper";
-import { Router } from "@vaadin/router";
 import axios from "axios";
 
 interface ImageItem {

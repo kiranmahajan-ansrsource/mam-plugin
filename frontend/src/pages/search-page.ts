@@ -21,6 +21,10 @@ interface ImageItem {
 @customElement("search-page")
 export class SearchPage extends LitElement {
   static styles = css`
+    :host {
+      width: 100%;
+      height: 100%;
+    }
     .search-heading {
       margin-top: 1rem;
       margin-bottom: 1rem;
@@ -58,10 +62,12 @@ export class SearchPage extends LitElement {
       border-radius: 6px;
       padding: 12px;
     }
-    .loader-container {
+    .spinner-container {
       height: 100%;
       width: 100%;
-      margin: auto;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
     }
   `;
 
@@ -172,7 +178,7 @@ export class SearchPage extends LitElement {
           >`
         : null}
       ${this.loading
-        ? html`<div class="loader-container">
+        ? html`<div class="spinner-container">
             <d2l-loading-spinner size="100"></d2l-loading-spinner>
           </div>`
         : html`

@@ -187,21 +187,6 @@ export class SearchPage extends LitElement {
     }
   }
 
-  // private _select(image: ImageItem) {
-  //   this.selected = image;
-  //   const searchParams = new URLSearchParams({
-  //     id: image.id,
-  //     name: image.name,
-  //     thumbnailUrl: image.thumbnailUrl,
-  //     fullImageUrl: image.fullImageUrl || "",
-  //     imageWidth: String(image.imageWidth || 0),
-  //     imageHeight: String(image.imageHeight || 0),
-  //     createDate: image.createDate || "",
-  //     ltik: this.ltik || "",
-  //   });
-  //   Router.go(`/details?${searchParams.toString()}`);
-  // }
-
   private _select(image: ImageItem) {
     this.selected = image;
 

@@ -135,9 +135,7 @@ export class InsertPage extends LitElement {
             @input=${(e: any) => (this.altText = e.target.value)}
           ></d2l-input-text>
 
-          <d2l-input-label for="width"
-            >Width (optional, px)</d2l-input-label
-          >
+          <d2l-input-label for="width">Width (optional, px)</d2l-input-label>
           <d2l-input-text
             id="width"
             .value=${this.width}
@@ -147,9 +145,7 @@ export class InsertPage extends LitElement {
             @input=${(e: any) => (this.width = e.target.value)}
           ></d2l-input-text>
 
-          <d2l-input-label for="height"
-            >Height (optional, px)</d2l-input-label
-          >
+          <d2l-input-label for="height">Height (optional, px)</d2l-input-label>
           <d2l-input-text
             id="height"
             .value=${this.height}

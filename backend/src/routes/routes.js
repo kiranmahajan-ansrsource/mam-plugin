@@ -65,6 +65,7 @@ router.post("/insert", async (req, res) => {
       items,
       { message: "HTML fragment inserted!" }
     );
+    console.log("Deep Link Items Sent:\n", items);
     return form ? res.send(form) : res.sendStatus(500);
   } catch (err) {
     console.error("[/insert html] ERROR:", err?.message || err);

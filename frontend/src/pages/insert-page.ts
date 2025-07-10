@@ -32,11 +32,6 @@ export class InsertPage extends LitElement {
   @state() private ltik: string = "";
   @state() private altText: string = "";
   @state() private submitting = false;
-  @state() private submitted = false;
-  @state() private error: string | null = null;
-
-  @state() private width: string = "";
-  @state() private height: string = "";
 
   @state() private image = {
     fullImageUrl: "",
@@ -63,16 +58,12 @@ export class InsertPage extends LitElement {
 
   private async submitForm() {
     this.submitting = true;
-    this.error = null;
     try {
       let imgTag = `<img src="${this.image.fullImageUrl.replace(
         /"/g,
         "&quot;"
       )}" alt="${this.altText.replace(/"/g, "&quot;")}"`;
-      if (this.width)
-        imgTag += ` width="${this.width.replace(/"/g, "&quot;")}"`;
-      if (this.height)
-        imgTag += ` height="${this.height.replace(/"/g, "&quot;")}"`;
+      imgTag += ` width="500px"`;
       imgTag += ' crossorigin="anonymous" />';
 
       const form = document.createElement("form");
@@ -92,9 +83,7 @@ export class InsertPage extends LitElement {
 
       document.body.appendChild(form);
       form.submit();
-      this.submitted = true;
     } catch (err: any) {
-      this.error = "Image insertion failed.";
       console.error(err);
     } finally {
       this.submitting = false;
@@ -132,48 +121,19 @@ export class InsertPage extends LitElement {
             @input=${(e: any) => (this.altText = e.target.value)}
           ></d2l-input-text>
 
-          <d2l-input-label for="width">Width (optional, px)</d2l-input-label>
-          <d2l-input-text
-            id="width"
-            .value=${this.width}
-            placeholder="e.g. 600"
-            type="number"
-            min="1"
-            @input=${(e: any) => (this.width = e.target.value)}
-          ></d2l-input-text>
-
-          <d2l-input-label for="height">Height (optional, px)</d2l-input-label>
-          <d2l-input-text
-            id="height"
-            .value=${this.height}
-            placeholder="e.g. 400"
-            type="number"
-            min="1"
-            @input=${(e: any) => (this.height = e.target.value)}
-          ></d2l-input-text>
-        </div>
-
-        ${this.error
-          ? html`<d2l-alert type="error">${this.error}</d2l-alert>`
-          : null}
-        ${this.submitted
-          ? html`<d2l-alert type="success"
-              >Image inserted successfully!</d2l-alert
-            >`
-          : null}
-
-        <div style="margin-top: 1rem;">
-          <d2l-button @click=${this.goBack} secondary>Back</d2l-button>
-          <d2l-button
-            primary
-            style="margin-left: 1rem;"
-            @click=${this.submitForm}
-            ?disabled=${!this.altText || this.submitting}
-          >
-            ${this.submitting
-              ? html`<d2l-loading-spinner small></d2l-loading-spinner>`
-              : "Insert"}
-          </d2l-button>
+          <div style="margin-top: 1rem;">
+            <d2l-button @click=${this.goBack} secondary>Back</d2l-button>
+            <d2l-button
+              primary
+              style="margin-left: 1rem;"
+              @click=${this.submitForm}
+              ?disabled=${!this.altText || this.submitting}
+            >
+              ${this.submitting
+                ? html`<d2l-loading-spinner small></d2l-loading-spinner>`
+                : "Insert"}
+            </d2l-button>
+          </div>
         </div>
       </div>
     `;

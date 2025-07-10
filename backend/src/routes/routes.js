@@ -56,14 +56,6 @@ router.post("/insert", async (req, res) => {
 
     const items = [
       {
-        type: "ltiResourceLink",
-        title: "Image URL",
-        custom: {
-          name: altText,
-          value: imageUrl,
-        },
-      },
-      {
         type: "image",
         url: imageUrl,
         title: altText,

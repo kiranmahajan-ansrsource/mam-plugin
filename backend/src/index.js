@@ -31,7 +31,7 @@ lti.onDeepLinking(async (token, req, res) => {
 lti.app.use(routes);
 
 const setup = async () => {
-  await lti.deploy({ port: process.env.PORT, silent: true });
+  await lti.deploy({ port: process.env.PORT });
   await lti.registerPlatform({
     url: process.env.PLATFORM_URL,
     name: "Brightspace",

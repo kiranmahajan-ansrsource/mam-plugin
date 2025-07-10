@@ -35,6 +35,9 @@ export class InsertPage extends LitElement {
   @state() private submitted = false;
   @state() private error: string | null = null;
 
+  @state() private width: string = "";
+  @state() private height: string = "";
+
   @state() private image = {
     fullImageUrl: "",
     name: "",
@@ -77,6 +80,19 @@ export class InsertPage extends LitElement {
       altTextInput.value = this.altText;
       form.appendChild(altTextInput);
 
+      if (this.width) {
+        const widthInput = document.createElement("input");
+        widthInput.name = "width";
+        widthInput.value = this.width;
+        form.appendChild(widthInput);
+      }
+      if (this.height) {
+        const heightInput = document.createElement("input");
+        heightInput.name = "height";
+        heightInput.value = this.height;
+        form.appendChild(heightInput);
+      }
+
       document.body.appendChild(form);
       form.submit();
       this.submitted = true;
@@ -117,6 +133,30 @@ export class InsertPage extends LitElement {
             placeholder="e.g. Chest X-ray showing..."
             required
             @input=${(e: any) => (this.altText = e.target.value)}
+          ></d2l-input-text>
+
+          <d2l-input-label for="width"
+            >Width (optional, px)</d2l-input-label
+          >
+          <d2l-input-text
+            id="width"
+            .value=${this.width}
+            placeholder="e.g. 600"
+            type="number"
+            min="1"
+            @input=${(e: any) => (this.width = e.target.value)}
+          ></d2l-input-text>
+
+          <d2l-input-label for="height"
+            >Height (optional, px)</d2l-input-label
+          >
+          <d2l-input-text
+            id="height"
+            .value=${this.height}
+            placeholder="e.g. 400"
+            type="number"
+            min="1"
+            @input=${(e: any) => (this.height = e.target.value)}
           ></d2l-input-text>
         </div>
 

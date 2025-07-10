@@ -48,7 +48,7 @@ router.post("/details", (req, res) => {
 
 router.post("/insert", async (req, res) => {
   try {
-    const { imageUrl, altText } = req.body;
+    const { imageUrl, altText, width, height } = req.body;
 
     if (!imageUrl || !altText) {
       return res.status(400).send("Missing imageUrl or altText");
@@ -59,11 +59,13 @@ router.post("/insert", async (req, res) => {
       url: imageUrl,
       title: altText,
       text: altText,
+      width: width ? parseInt(width) : undefined,
+      height: height ? parseInt(height) : undefined,
     };
 
     const form = await lti.DeepLinking.createDeepLinkingForm(
       res.locals.token,
-      item,
+      [item],
       { message: "Image successfully inserted!" }
     );
 

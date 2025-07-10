@@ -54,25 +54,35 @@ router.post("/insert", async (req, res) => {
       return res.status(400).send("Missing imageUrl or altText");
     }
 
-    const item = {
-      type: "image",
-      url: imageUrl,
-      title: altText,
-      text: altText,
-      width: width ? parseInt(width) : undefined,
-      height: height ? parseInt(height) : undefined,
-    };
+    const items = [
+      {
+        type: "ltiResourceLink",
+        title: "Image URL",
+        custom: {
+          name: altText,
+          value: imageUrl,
+        },
+      },
+      {
+        type: "image",
+        url: imageUrl,
+        title: altText,
+        text: altText,
+        width: width ? parseInt(width) : undefined,
+        height: height ? parseInt(height) : undefined,
+      },
+    ];
 
     const form = await lti.DeepLinking.createDeepLinkingForm(
       res.locals.token,
-      [item],
+      items,
       { message: "Image successfully inserted!" }
     );
-
-    return res.send(form);
+    if (form) return res.send(form);
+    return res.sendStatus(500);
   } catch (err) {
     console.error("[/insert] ERROR:", err?.message || err);
-    return res.status(500).send("Failed to insert image.");
+    return res.status(500).send(err.message);
   }
 });
 

@@ -65,33 +65,30 @@ export class InsertPage extends LitElement {
     this.submitting = true;
     this.error = null;
     try {
+      let imgTag = `<img src="${this.image.fullImageUrl.replace(
+        /"/g,
+        "&quot;"
+      )}" alt="${this.altText.replace(/"/g, "&quot;")}"`;
+      if (this.width)
+        imgTag += ` width="${this.width.replace(/"/g, "&quot;")}"`;
+      if (this.height)
+        imgTag += ` height="${this.height.replace(/"/g, "&quot;")}"`;
+      imgTag += ' crossorigin="anonymous" />';
+
       const form = document.createElement("form");
       form.method = "POST";
       form.action = `/insert?ltik=${this.ltik}`;
       form.style.display = "none";
 
-      const imageUrlInput = document.createElement("input");
-      imageUrlInput.name = "imageUrl";
-      imageUrlInput.value = this.image.fullImageUrl;
-      form.appendChild(imageUrlInput);
+      const htmlFragmentInput = document.createElement("input");
+      htmlFragmentInput.name = "htmlFragment";
+      htmlFragmentInput.value = imgTag;
+      form.appendChild(htmlFragmentInput);
 
-      const altTextInput = document.createElement("input");
-      altTextInput.name = "altText";
-      altTextInput.value = this.altText;
-      form.appendChild(altTextInput);
-
-      if (this.width) {
-        const widthInput = document.createElement("input");
-        widthInput.name = "width";
-        widthInput.value = this.width;
-        form.appendChild(widthInput);
-      }
-      if (this.height) {
-        const heightInput = document.createElement("input");
-        heightInput.name = "height";
-        heightInput.value = this.height;
-        form.appendChild(heightInput);
-      }
+      const titleInput = document.createElement("input");
+      titleInput.name = "title";
+      titleInput.value = this.altText;
+      form.appendChild(titleInput);
 
       document.body.appendChild(form);
       form.submit();

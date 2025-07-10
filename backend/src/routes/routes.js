@@ -48,32 +48,26 @@ router.post("/details", (req, res) => {
 
 router.post("/insert", async (req, res) => {
   try {
-    const { imageUrl, altText, width, height } = req.body;
-
-    if (!imageUrl || !altText) {
-      return res.status(400).send("Missing imageUrl or altText");
-    }
+    const { htmlFragment, title } = req.body;
+    if (!htmlFragment) return res.status(400).send("Missing htmlFragment");
 
     const items = [
       {
-        type: "image",
-        url: imageUrl,
-        title: altText,
-        text: altText,
-        width: width ? parseInt(width) : undefined,
-        height: height ? parseInt(height) : undefined,
+        type: "html",
+        html: htmlFragment,
+        title,
+        text: title,
       },
     ];
 
     const form = await lti.DeepLinking.createDeepLinkingForm(
       res.locals.token,
       items,
-      { message: "Image successfully inserted!" }
+      { message: "HTML fragment inserted!" }
     );
-    if (form) return res.send(form);
-    return res.sendStatus(500);
+    return form ? res.send(form) : res.sendStatus(500);
   } catch (err) {
-    console.error("[/insert] ERROR:", err?.message || err);
+    console.error("[/insert html] ERROR:", err?.message || err);
     return res.status(500).send(err.message);
   }
 });

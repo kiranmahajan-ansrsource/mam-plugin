@@ -43,7 +43,7 @@ router.get("/details", (req, res) => {
 
 router.post("/details", (req, res) => {
   const params = new URLSearchParams(req.body).toString();
-  res.redirect(`/details?${params}`);
+  lti.redirect(res, `/details?${params}`);
 });
 
 router.post("/insert", async (req, res) => {
@@ -66,6 +66,7 @@ router.post("/insert", async (req, res) => {
       { message: "HTML fragment inserted!" }
     );
     console.log("Deep Link Items Sent:\n", items);
+    console.log("Deep Link form Sent:\n", form);
     return form ? res.send(form) : res.sendStatus(500);
   } catch (err) {
     console.error("[/insert html] ERROR:", err?.message || err);

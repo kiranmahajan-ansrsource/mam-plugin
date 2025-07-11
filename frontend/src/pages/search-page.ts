@@ -192,7 +192,7 @@ export class SearchPage extends LitElement {
 
     const form = document.createElement("form");
     form.method = "POST";
-    form.action = "/details";
+    form.action = `/details?ltik=${this.ltik}`;
     form.style.display = "none";
 
     const fields = {
@@ -203,7 +203,6 @@ export class SearchPage extends LitElement {
       imageWidth: image.imageWidth?.toString() || "",
       imageHeight: image.imageHeight?.toString() || "",
       createDate: image.createDate || "",
-      ltik: this.ltik || "",
     };
 
     for (const [key, value] of Object.entries(fields)) {

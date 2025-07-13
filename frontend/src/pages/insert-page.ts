@@ -6,6 +6,7 @@ import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
 import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
 import { getLtik } from "../utils/helper";
 import { Router } from "@vaadin/router";
+import axios from "axios";
 
 @customElement("insert-page")
 export class InsertPage extends LitElement {
@@ -32,13 +33,14 @@ export class InsertPage extends LitElement {
   @state() private ltik: string = "";
   @state() private altText: string = "";
   @state() private submitting = false;
+  @state() private isLoadingAuth = true;
 
   @state() private image = {
     fullImageUrl: "",
     name: "",
   };
 
-  connectedCallback(): void {
+  async connectedCallback(): Promise<void> {
     super.connectedCallback();
     const params = new URLSearchParams(window.location.search);
     this.ltik = getLtik();
@@ -46,11 +48,75 @@ export class InsertPage extends LitElement {
       fullImageUrl: params.get("fullImageUrl") || "",
       name: params.get("name") || "",
     };
+
+    if (!this.image.fullImageUrl || !this.image.name) {
+      console.error(
+        "Missing fullImageUrl or name in URL parameters. Cannot proceed."
+      );
+      alert(
+        "Image URL or name is missing from the page link. Please go back and select an image again."
+      );
+      this.goBack();
+      return;
+    }
+
+    try {
+      this.isLoadingAuth = true;
+      console.log(
+        "Checking D2L authentication status via /api/d2l-auth-status..."
+      );
+
+      const response = await axios.get("/api/d2l-auth-status", {
+        withCredentials: true,
+      });
+
+      console.log(
+        "Response from /api/d2l-auth-status:",
+        response.status,
+        response.data
+      );
+
+      if (
+        response.status !== 200 ||
+        !response.data ||
+        !response.data.authenticated
+      ) {
+        const currentPath = window.location.pathname;
+        const currentSearchParams = window.location.search;
+        const returnToUrl = `${currentPath}${currentSearchParams}`;
+
+        console.log(
+          `D2L Access Token missing or authentication check failed. Redirecting to OAuth login with returnTo: ${returnToUrl}`
+        );
+
+        window.location.href = `/oauth/login?returnTo=${encodeURIComponent(
+          returnToUrl
+        )}`;
+        return;
+      }
+      console.log("D2L Access Token found. Proceeding with page load.");
+    } catch (error: any) {
+      console.error(
+        "Error checking D2L authentication status:",
+        error.message || error
+      );
+
+      if (axios.isAxiosError(error) && error.response) {
+        console.error("Axios error response status:", error.response.status);
+        console.error("Axios error response data:", error.response.data);
+      }
+      alert("Failed to check D2L authentication status. Please try again.");
+      window.location.href = "/deeplink";
+      return;
+    } finally {
+      this.isLoadingAuth = false;
+    }
   }
 
   private goBack() {
     const searchParams = new URLSearchParams({
-      ...this.image,
+      fullImageUrl: this.image.fullImageUrl,
+      name: this.image.name,
       ltik: this.ltik,
     } as any);
     Router.go(`/details?${searchParams.toString()}`);
@@ -58,39 +124,50 @@ export class InsertPage extends LitElement {
 
   private async submitForm() {
     this.submitting = true;
-    try {
-      let imgTag = `<img src="${this.image.fullImageUrl.replace(
-        /"/g,
-        "&quot;"
-      )}" alt="${this.altText.replace(/"/g, "&quot;")}"`;
-      imgTag += ` width="500px"`;
-      imgTag += ' crossorigin="anonymous" />';
 
+    try {
       const form = document.createElement("form");
       form.method = "POST";
       form.action = `/insert?ltik=${this.ltik}`;
       form.style.display = "none";
 
-      const htmlFragmentInput = document.createElement("input");
-      htmlFragmentInput.name = "htmlFragment";
-      htmlFragmentInput.value = imgTag;
-      form.appendChild(htmlFragmentInput);
+      const imageUrlInput = document.createElement("input");
+      imageUrlInput.name = "imageUrl";
+      imageUrlInput.value = this.image.fullImageUrl;
+      form.appendChild(imageUrlInput);
+
+      const altTextInput = document.createElement("input");
+      altTextInput.name = "altText";
+      altTextInput.value = this.altText;
+      form.appendChild(altTextInput);
 
       const titleInput = document.createElement("input");
       titleInput.name = "title";
-      titleInput.value = this.altText;
+      titleInput.value = this.image.name;
       form.appendChild(titleInput);
 
       document.body.appendChild(form);
       form.submit();
     } catch (err: any) {
       console.error(err);
+      alert("An error occurred during form submission. Please try again.");
     } finally {
       this.submitting = false;
     }
   }
 
   render() {
+    if (this.isLoadingAuth) {
+      return html`
+        <div
+          style="display: flex; justify-content: center; align-items: center; height: 100vh;"
+        >
+          <d2l-loading-spinner size="100"></d2l-loading-spinner>
+          <p style="margin-left: 1rem;">Checking D2L authentication...</p>
+        </div>
+      `;
+    }
+
     return html`
       <d2l-breadcrumbs>
         <d2l-breadcrumb
@@ -127,7 +204,10 @@ export class InsertPage extends LitElement {
               primary
               style="margin-left: 1rem;"
               @click=${this.submitForm}
-              ?disabled=${!this.altText || this.submitting}
+              ?disabled=${!this.altText ||
+              this.submitting ||
+              !this.image.fullImageUrl ||
+              !this.image.name}
             >
               ${this.submitting
                 ? html`<d2l-loading-spinner small></d2l-loading-spinner>`

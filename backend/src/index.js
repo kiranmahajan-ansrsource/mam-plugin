@@ -3,6 +3,7 @@ const lti = require("ltijs").Provider;
 const routes = require("./routes/routes");
 const isDev = process.env.NODE_ENV !== "production";
 const publicPath = path.join(__dirname, "../public");
+const COOKIE_SECRET = process.env.LTI_KEY;
 
 lti.setup(
   process.env.LTI_KEY,
@@ -16,17 +17,24 @@ lti.setup(
       sameSite: isDev ? "Lax" : "None",
     },
     devMode: isDev,
-  }
+  },
+  COOKIE_SECRET
 );
-lti.whitelist("/assets", "/favicon.ico", "/lang");
 
-lti.onConnect(async (token, req, res) => {
-  console.log(token);
+lti.whitelist(
+  "/assets",
+  "/favicon.ico",
+  "/lang/en.js",
+  "/oauth/login",
+  "/oauth/callback",
+  "/api/d2l-auth-status"
+);
+
+lti.onConnect(async (req, res) => {
   return res.sendFile(path.join(publicPath, "index.html"));
 });
 
-lti.onDeepLinking(async (token, req, res) => {
-  console.log(token);
+lti.onDeepLinking(async (req, res) => {
   return lti.redirect(res, "/deeplink", { newResource: true });
 });
 

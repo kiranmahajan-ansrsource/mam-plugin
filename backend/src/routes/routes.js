@@ -160,16 +160,16 @@ router.get("/oauth/callback", async (req, res) => {
       "[OAuth Callback] ERROR during token exchange or processing:",
       err?.response?.data || err.message || err
     );
-    if (axios.isAxiosError(err) && err.response) {
-      console.error("D2L Token Exchange Response Status:", err.response.status);
-      console.error("D2L Token Exchange Response Data:", err.response.data);
+    if (axios.isAxiosError(err)) {
+      console.error("Axios Error Code:", err.code);
+      console.error("Axios Error Message:", err.message);
+      console.error("Axios Request URL:", err.config?.url);
+      if (err.response) {
+        console.error("Axios Error Response Status:", err.response.status);
+        console.error("Axios Error Response Data:", err.response.data);
+      }
     }
-    res.clearCookie("oauthState", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      signed: true,
-      sameSite: "None",
-    });
+
     return res
       .status(500)
       .send("OAuth token exchange failed or an unexpected error occurred.");
@@ -243,8 +243,20 @@ router.post("/insert", async (req, res) => {
     const decodedImageUrl = decodeURIComponent(imageUrl);
     console.log(`Decoded Image URL for fetch: ${decodedImageUrl}`);
 
+    if (
+      !res.locals.context ||
+      !res.locals.context.context ||
+      !res.locals.context.context.id
+    ) {
+      console.error(
+        "[/insert] ERROR: LTI context or context ID missing. Please launch the tool from D2L."
+      );
+      return res
+        .status(401)
+        .send("LTI context missing. Please launch the tool from D2L.");
+    }
     orgUnitId = res.locals.context.context.id;
-    console.log(orgUnitId + "✅✅✅");
+    console.log(`Processing /insert for orgUnitId: ${orgUnitId}✅✅✅`);
     const d2lAccessToken = req.cookies.d2lAccessToken;
 
     if (!d2lAccessToken) {
@@ -267,12 +279,24 @@ router.post("/insert", async (req, res) => {
         .send("Server configuration error: D2L API Base URL is not set.");
     }
 
-    console.log("Attempting to create temporary module...");
+    // --- Step 1: Create a Temporary Module (Top-Level) ---
+    console.log("Attempting to create temporary top-level module...");
     const moduleResponse = await axios.post(
-      `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/modules/`,
+      `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/root/`,
       {
         Title: `Temp Image Module - ${Date.now()}`,
+        ShortTitle: `Temp Mod ${Date.now()}`,
         IsHidden: true,
+        Type: 0,
+        ModuleStartDate: null,
+        ModuleEndDate: null,
+        ModuleDueDate: null,
+        IsLocked: false,
+        Description: {
+          Text: "Temporary module for image insertion.",
+          Html: "<p>Temporary module for image insertion.</p>",
+        },
+        Duration: null,
       },
       {
         headers: {
@@ -282,80 +306,163 @@ router.post("/insert", async (req, res) => {
       }
     );
     moduleId = moduleResponse.data.Id;
-    console.log(`Successfully created temporary module with ID: ${moduleId}`);
-
-    console.log("Attempting to create temporary topic...");
-    const topicResponse = await axios.post(
-      `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/modules/${moduleId}/topics/`,
-      {
-        Title: `Temp Image Topic - ${Date.now()}`,
-        IsHidden: true,
-        OpenAsExternalResource: false,
-        Type: 1,
-        Url: "",
-      },
-      {
-        headers: {
-          Authorization: `Bearer ${d2lAccessToken}`,
-          "Content-Type": "application/json",
-        },
-      }
+    console.log(
+      `Successfully created temporary top-level module with ID: ${moduleId}`
     );
-    topicId = topicResponse.data.TopicId;
-    console.log(`Successfully created temporary topic with ID: ${topicId}`);
 
-    console.log(`Fetching external image from URL: ${decodedImageUrl}`);
+    // --- Step 2: Create a Temporary Topic (File Type) with multipart/mixed upload ---
+
+    const boundary = `----WebKitFormBoundary${crypto
+      .randomBytes(16)
+      .toString("hex")}`;
+
+    // Build your topic JSON payload correctly — note TopicType: 1 (File), OpenAsExternalResource: false
+    const topicJson = {
+      TopicType: 1,
+      Url: `/content/enforced/${orgUnitId}/temp_image_${Date.now()}.${decodedImageUrl
+        .split(".")
+        .pop()}`,
+      StartDate: null,
+      EndDate: null,
+      DueDate: null,
+      IsHidden: true,
+      IsLocked: false,
+      IsBroken: false,
+      OpenAsExternalResource: false,
+      Title: `Temp Image Topic - ${Date.now()}`,
+      ShortTitle: `Img Topic ${Date.now()}`,
+      Type: 1,
+      Description: {
+        Text: "Temporary topic for image insertion.",
+        Html: "<p>Temporary topic for image insertion.</p>",
+      },
+      ActivityId: null,
+      Duration: null,
+      IsExempt: false,
+      ToolId: null,
+      ToolItemId: null,
+      ActivityType: null,
+      GradeItemId: null,
+      LastModifiedDate: null,
+      AssociatedGradeItemIds: [],
+    };
+
+    // Fetch the image as a buffer
     const imageFetchResponse = await axios.get(decodedImageUrl, {
       responseType: "arraybuffer",
     });
-    const imageData = imageFetchResponse.data;
-
-    const contentType =
+    const imageData = Buffer.from(imageFetchResponse.data);
+    const imageContentType =
       imageFetchResponse.headers["content-type"] || "application/octet-stream";
+    const imageFileName = `img_${Date.now()}.${imageContentType
+      .split("/")
+      .pop()}`;
 
-    const fileExtension = contentType.split("/").pop() || "bin";
+    // Construct multipart/mixed body
+    const crlf = "\r\n";
+    const parts = [];
 
-    const fileName = `${title.replace(
-      /[^a-zA-Z0-9_.-]/g,
-      ""
-    )}_${Date.now()}.${fileExtension}`;
-    console.log(
-      `Fetched image with content type: ${contentType} and proposed filename: ${fileName}`
+    // JSON part (no Content-Disposition 'name=')
+    parts.push(Buffer.from(`--${boundary}${crlf}`));
+    parts.push(Buffer.from(`Content-Type: application/json${crlf}${crlf}`));
+    parts.push(Buffer.from(JSON.stringify(topicJson)));
+    parts.push(Buffer.from(crlf));
+
+    // File part
+    parts.push(Buffer.from(`--${boundary}${crlf}`));
+    parts.push(
+      Buffer.from(
+        `Content-Disposition: attachment; filename="${imageFileName}"${crlf}`
+      )
     );
+    parts.push(Buffer.from(`Content-Type: ${imageContentType}${crlf}${crlf}`));
+    parts.push(imageData);
+    parts.push(Buffer.from(crlf));
 
-    console.log(`Uploading image '${fileName}' to D2L topic ${topicId}...`);
-    const uploadResponse = await axios.post(
-      `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/topics/${topicId}/file`,
-      imageData,
+    // Closing boundary
+    parts.push(Buffer.from(`--${boundary}--${crlf}`));
+
+    const multipartBody = Buffer.concat(parts);
+
+    // Send the request
+    const topicUploadResponse = await axios.post(
+      `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/modules/${moduleId}/structure/`,
+      multipartBody,
       {
         headers: {
           Authorization: `Bearer ${d2lAccessToken}`,
-          "Content-Type": contentType,
-          "x-file-name": fileName,
+          "Content-Type": `multipart/mixed; boundary=${boundary}`,
         },
       }
     );
-    const fileId = uploadResponse.data.FileId;
-    console.log(`Image uploaded to D2L. FileId: ${fileId}`);
 
-    console.log(`Retrieving D2L URL for FileId: ${fileId}`);
-    const fileDetailsResponse = await axios.get(
-      `${process.env.D2L_API_BASE_URL}/${orgUnitId}/files/${fileId}`,
-      {
-        headers: {
-          Authorization: `Bearer ${d2lAccessToken}`,
-        },
+    let topicId;
+    let fileId;
+
+    try {
+      const topicData = topicUploadResponse.data;
+
+      if (typeof topicData === "object" && topicData !== null) {
+        topicId = topicData.TopicId || topicData.Id;
+        fileId = topicData.FileId;
+      } else {
+        const parsed = JSON.parse(topicUploadResponse.data.toString("utf8"));
+        topicId = parsed.TopicId || parsed.Id;
+        fileId = parsed.FileId;
       }
-    );
-    const d2lImageUrl = fileDetailsResponse.data.Path;
-    console.log(`Retrieved D2L Image URL: ${d2lImageUrl}`);
+
+      console.log(`Created temporary topic with ID: ${topicId}`);
+      if (fileId) console.log(`Image uploaded with FileId: ${fileId}`);
+    } catch (error) {
+      console.error("Failed to parse topicUploadResponse:", error);
+      console.log(
+        "Raw response:",
+        topicUploadResponse.data?.toString?.("utf8") || topicUploadResponse.data
+      );
+      throw new Error(
+        "D2L API returned unexpected or malformed topic upload response."
+      );
+    }
+    // --- Step 3: Retrieve the D2L URL for the Uploaded File ---
+    let d2lImageUrl;
+    if (fileId) {
+      console.log(`Retrieving D2L URL for FileId: ${fileId}`);
+      const fileDetailsResponse = await axios.get(
+        `${process.env.D2L_API_BASE_URL}/${orgUnitId}/files/${fileId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${d2lAccessToken}`,
+          },
+        }
+      );
+      d2lImageUrl = fileDetailsResponse.data.Path;
+      console.log(`Retrieved D2L Image URL: ${d2lImageUrl}`);
+    } else if (parsedTopicUploadResponse.Url) {
+      d2lImageUrl = parsedTopicUploadResponse.Url;
+      console.log(
+        `Retrieved D2L Image URL from topic response: ${d2lImageUrl}`
+      );
+    } else {
+      console.warn(
+        "Could not find D2L Image URL directly. Attempting to get topic details."
+      );
+      const topicDetailsResponse = await axios.get(
+        `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/topics/${topicId}`,
+        {
+          headers: {
+            Authorization: `Bearer ${d2lAccessToken}`,
+          },
+        }
+      );
+      d2lImageUrl = topicDetailsResponse.data.Url;
+      console.log(`Retrieved D2L Image URL from topic details: ${d2lImageUrl}`);
+    }
 
     const finalHtmlFragment = `
-      <img src="${d2lImageUrl}"
-           alt="${altText}"
-           title="${title}"
-           style="max-width: 100%; height: auto; border-radius: 8px; display: block; margin: 0 auto;">
-    `;
+<img src="${d2lImageUrl}"
+      alt="${altText}"
+      title="${title}"
+   >`;
     console.log("Generated HTML fragment for deep linking.");
 
     const items = [

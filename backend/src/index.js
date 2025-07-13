@@ -30,11 +30,11 @@ lti.whitelist(
   "/api/d2l-auth-status"
 );
 
-lti.onConnect(async (req, res) => {
+lti.onConnect(async (token, req, res) => {
   return res.sendFile(path.join(publicPath, "index.html"));
 });
 
-lti.onDeepLinking(async (req, res) => {
+lti.onDeepLinking(async (token, req, res) => {
   return lti.redirect(res, "/deeplink", { newResource: true });
 });
 

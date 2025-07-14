@@ -4,6 +4,8 @@ const lti = require("ltijs").Provider;
 const axios = require("axios");
 const { getAccessToken } = require("../controllers/mayo.controller");
 const crypto = require("crypto");
+const { getBase64FromImageUrl } = require("../utils/helper");
+const fs = require("fs");
 
 const publicPath = path.join(__dirname, "../../public");
 
@@ -310,159 +312,51 @@ router.post("/insert", async (req, res) => {
       `Successfully created temporary top-level module with ID: ${moduleId}`
     );
 
-    // --- Step 2: Create a Temporary Topic (File Type) with multipart/mixed upload ---
+    // --- Step 2: Fetch and encode image ---
+    const { base64, contentType } = await getBase64FromImageUrl(
+      decodedImageUrl
+    );
+    const fileExt = contentType.split("/").pop();
+    const fileName = `img_${Date.now()}.${fileExt}`;
+    const d2lPath = `/content/enforced/${orgUnitId}/${fileName}`;
+    fs.writeFileSync("image_base64.txt", base64, "utf-8");
 
-    const boundary = `----WebKitFormBoundary${crypto
-      .randomBytes(16)
-      .toString("hex")}`;
-
-    // Build your topic JSON payload correctly — note TopicType: 1 (File), OpenAsExternalResource: false
-    const topicJson = {
+    // --- Step 3: Upload image using base64=true ---
+    const topicPayload = {
       TopicType: 1,
-      Url: `/content/enforced/${orgUnitId}/temp_image_${Date.now()}.${decodedImageUrl
-        .split(".")
-        .pop()}`,
-      StartDate: null,
-      EndDate: null,
-      DueDate: null,
+      Url: d2lPath,
+      Title: `Temp Image Topic - ${Date.now()}`,
+      ShortTitle: `ImgTopic${Date.now()}`,
+      Type: 1,
       IsHidden: true,
       IsLocked: false,
-      IsBroken: false,
-      OpenAsExternalResource: false,
-      Title: `Temp Image Topic - ${Date.now()}`,
-      ShortTitle: `Img Topic ${Date.now()}`,
-      Type: 1,
       Description: {
         Text: "Temporary topic for image insertion.",
         Html: "<p>Temporary topic for image insertion.</p>",
       },
-      ActivityId: null,
-      Duration: null,
-      IsExempt: false,
-      ToolId: null,
-      ToolItemId: null,
-      ActivityType: null,
-      GradeItemId: null,
-      LastModifiedDate: null,
-      AssociatedGradeItemIds: [],
+      FileData: base64,
     };
 
-    // Fetch the image as a buffer
-    const imageFetchResponse = await axios.get(decodedImageUrl, {
-      responseType: "arraybuffer",
-    });
-    const imageData = Buffer.from(imageFetchResponse.data);
-    const imageContentType =
-      imageFetchResponse.headers["content-type"] || "application/octet-stream";
-    const imageFileName = `img_${Date.now()}.${imageContentType
-      .split("/")
-      .pop()}`;
-
-    // Construct multipart/mixed body
-    const crlf = "\r\n";
-    const parts = [];
-
-    // JSON part (no Content-Disposition 'name=')
-    parts.push(Buffer.from(`--${boundary}${crlf}`));
-    parts.push(Buffer.from(`Content-Type: application/json${crlf}${crlf}`));
-    parts.push(Buffer.from(JSON.stringify(topicJson)));
-    parts.push(Buffer.from(crlf));
-
-    // File part
-    parts.push(Buffer.from(`--${boundary}${crlf}`));
-    parts.push(
-      Buffer.from(
-        `Content-Disposition: attachment; filename="${imageFileName}"${crlf}`
-      )
-    );
-    parts.push(Buffer.from(`Content-Type: ${imageContentType}${crlf}${crlf}`));
-    parts.push(imageData);
-    parts.push(Buffer.from(crlf));
-
-    // Closing boundary
-    parts.push(Buffer.from(`--${boundary}--${crlf}`));
-
-    const multipartBody = Buffer.concat(parts);
-
-    // Send the request
-    const topicUploadResponse = await axios.post(
-      `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/modules/${moduleId}/structure/`,
-      multipartBody,
+    const topicResp = await axios.post(
+      `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/modules/${moduleId}/structure/?base64=true`,
+      topicPayload,
       {
         headers: {
           Authorization: `Bearer ${d2lAccessToken}`,
-          "Content-Type": `multipart/mixed; boundary=${boundary}`,
+          "Content-Type": "application/json",
         },
       }
     );
 
-    let topicId;
-    let fileId;
+    topicId = topicResp.data?.TopicId || topicResp.data?.Id;
+    const d2lImageUrl = topicResp.data?.Url || d2lPath;
 
-    try {
-      const topicData = topicUploadResponse.data;
-
-      if (typeof topicData === "object" && topicData !== null) {
-        topicId = topicData.TopicId || topicData.Id;
-        fileId = topicData.FileId;
-      } else {
-        const parsed = JSON.parse(topicUploadResponse.data.toString("utf8"));
-        topicId = parsed.TopicId || parsed.Id;
-        fileId = parsed.FileId;
-      }
-
-      console.log(`Created temporary topic with ID: ${topicId}`);
-      if (fileId) console.log(`Image uploaded with FileId: ${fileId}`);
-    } catch (error) {
-      console.error("Failed to parse topicUploadResponse:", error);
-      console.log(
-        "Raw response:",
-        topicUploadResponse.data?.toString?.("utf8") || topicUploadResponse.data
-      );
-      throw new Error(
-        "D2L API returned unexpected or malformed topic upload response."
-      );
-    }
-    // --- Step 3: Retrieve the D2L URL for the Uploaded File ---
-    let d2lImageUrl;
-    if (fileId) {
-      console.log(`Retrieving D2L URL for FileId: ${fileId}`);
-      const fileDetailsResponse = await axios.get(
-        `${process.env.D2L_API_BASE_URL}/${orgUnitId}/files/${fileId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${d2lAccessToken}`,
-          },
-        }
-      );
-      d2lImageUrl = fileDetailsResponse.data.Path;
-      console.log(`Retrieved D2L Image URL: ${d2lImageUrl}`);
-    } else if (parsedTopicUploadResponse.Url) {
-      d2lImageUrl = parsedTopicUploadResponse.Url;
-      console.log(
-        `Retrieved D2L Image URL from topic response: ${d2lImageUrl}`
-      );
-    } else {
-      console.warn(
-        "Could not find D2L Image URL directly. Attempting to get topic details."
-      );
-      const topicDetailsResponse = await axios.get(
-        `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/topics/${topicId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${d2lAccessToken}`,
-          },
-        }
-      );
-      d2lImageUrl = topicDetailsResponse.data.Url;
-      console.log(`Retrieved D2L Image URL from topic details: ${d2lImageUrl}`);
-    }
-
+    // --- Step 4: HTML output ---
     const finalHtmlFragment = `
 <img src="${d2lImageUrl}"
-      alt="${altText}"
-      title="${title}"
-   >`;
+     alt="${altText}"
+     title="${title}"
+>`;
     console.log("Generated HTML fragment for deep linking.");
 
     const items = [

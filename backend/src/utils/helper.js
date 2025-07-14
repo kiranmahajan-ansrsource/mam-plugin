@@ -1,0 +1,12 @@
+import axios from "axios";
+
+export async function getBase64FromImageUrl(imageUrl) {
+  const response = await axios.get(imageUrl, {
+    responseType: "arraybuffer",
+  });
+
+  const contentType = response.headers["content-type"] || "image/jpeg";
+  const base64 = Buffer.from(response.data).toString("base64");
+
+  return { base64, contentType };
+}

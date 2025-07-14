@@ -1,9 +1,12 @@
+const { validateEnv } = require("./env");
 const path = require("path");
 const lti = require("ltijs").Provider;
 const routes = require("./routes");
 const isDev = process.env.NODE_ENV !== "production";
 const publicPath = path.join(__dirname, "../public");
 const COOKIE_SECRET = process.env.LTI_KEY;
+
+validateEnv();
 
 lti.setup(
   process.env.LTI_KEY,

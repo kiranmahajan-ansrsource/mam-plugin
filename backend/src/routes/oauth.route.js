@@ -173,7 +173,7 @@ router.get("/oauth/callback", async (req, res) => {
   }
 });
 
-router.get("/api/d2l-auth-status", (req, res) => {
+router.get("/oauth/check", (req, res) => {
   const d2lAccessToken = req.cookies.d2lAccessToken;
   if (d2lAccessToken) {
     return res.json({ authenticated: true });

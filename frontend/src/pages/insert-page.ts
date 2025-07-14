@@ -62,16 +62,14 @@ export class InsertPage extends LitElement {
 
     try {
       this.isLoadingAuth = true;
-      console.log(
-        "Checking D2L authentication status via /api/d2l-auth-status..."
-      );
+      console.log("Checking D2L authentication status via /oauth/check...");
 
-      const response = await axios.get("/api/d2l-auth-status", {
+      const response = await axios.get("/oauth/check", {
         withCredentials: true,
       });
 
       console.log(
-        "Response from /api/d2l-auth-status:",
+        "Response from /oauth/check:",
         response.status,
         response.data
       );

@@ -27,7 +27,7 @@ lti.whitelist(
   "/lang/en.js",
   "/oauth/login",
   "/oauth/callback",
-  "/api/d2l-auth-status"
+  "/oauth/check"
 );
 
 lti.onConnect(async (token, req, res) => {

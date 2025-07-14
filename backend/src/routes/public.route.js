@@ -3,16 +3,8 @@ const router = express.Router();
 const path = require("path");
 const lti = require("ltijs").Provider;
 const axios = require("axios");
-const { fetchImageBuffer } = require("../utils/helper");
-const publicPath = path.join(__dirname, "../../public");
 
-router.get("/deeplink", (req, res) => {
-  res.sendFile(path.join(publicPath, "index.html"));
-});
-
-router.get("/details", (req, res) => {
-  res.sendFile(path.join(publicPath, "index.html"));
-});
+const { fetchImageBuffer, handleError } = require("../utils/common.utils");
 
 router.post("/details", (req, res) => {
   const params = new URLSearchParams(req.body).toString();
@@ -25,13 +17,8 @@ router.post("/insert", async (req, res) => {
 
   try {
     const { imageUrl, title, altText } = req.body;
-    if (!imageUrl || !title || !altText) {
-      console.error(
-        "[/insert] ERROR: Missing imageUrl, title, or altText in request body."
-      );
-      return res
-        .status(400)
-        .send("Missing imageUrl, title, or altText in request body.");
+    if (!imageUrl) {
+      return handleError(res, 400, "Missing imageUrl in request body.");
     }
 
     const decodedImageUrl = decodeURIComponent(imageUrl);
@@ -45,9 +32,11 @@ router.post("/insert", async (req, res) => {
       console.error(
         "[/insert] ERROR: LTI context or context ID missing. Please launch the tool from D2L."
       );
-      return res
-        .status(401)
-        .send("LTI context missing. Please launch the tool from D2L.");
+      return handleError(
+        res,
+        401,
+        "LTI context missing. Please launch the tool from D2L."
+      );
     }
     orgUnitId = res.locals.context.context.id;
     const orgId = res.locals.context.context.label;
@@ -58,23 +47,25 @@ router.post("/insert", async (req, res) => {
       console.error(
         "D2L Access Token not found in cookies. User needs to re-authenticate via OAuth."
       );
-      return res
-        .status(401)
-        .send(
-          "D2L Access Token missing. Please complete the OAuth login process first."
-        );
+      return handleError(
+        res,
+        401,
+        "D2L Access Token missing. Please complete the OAuth login process first."
+      );
     }
 
     if (!process.env.D2L_API_BASE_URL) {
       console.error(
         "Missing D2L_API_BASE_URL environment variable. Cannot make D2L API calls."
       );
-      return res
-        .status(500)
-        .send("Server configuration error: D2L API Base URL is not set.");
-    } // --- Step 1: Create a Temporary Module (Top-Level) ---
+      return handleError(
+        res,
+        500,
+        "Server configuration error: D2L API Base URL is not set."
+      );
+    }
 
-    console.log("Attempting to create temporary top-level module...");
+    // --- Step 1: Create a Temporary Module (Top-Level) ---
     const moduleResponse = await axios.post(
       `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/root/`,
       {
@@ -102,8 +93,9 @@ router.post("/insert", async (req, res) => {
     moduleId = moduleResponse.data.Id;
     console.log(
       `Successfully created temporary top-level module with ID: ${moduleId}`
-    ); // --- Step 2: Fetch image as a buffer and define the D2L URL ---
+    );
 
+    // --- Step 2: Fetch image as a buffer and define the D2L URL ---
     const { buffer, contentType } = await fetchImageBuffer(decodedImageUrl);
     const fileExt = contentType.split("/").pop();
     const fileName = `img_${Date.now()}.${fileExt}`;
@@ -143,21 +135,21 @@ router.post("/insert", async (req, res) => {
       buffer,
       Buffer.from(bodyFooter),
     ]);
-    console.log(
-      `Sending API call to: ${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/modules/${moduleId}/structure/`
-    );
-    console.log("-------------------------------------------");
-    console.log("Final Request Headers:");
-    console.log(`Authorization: Bearer ${d2lAccessToken}`);
-    console.log(`Content-Type: multipart/mixed; boundary=${boundary}`);
-    console.log(`Content-Length: ${requestBody.length}`);
-    console.log("-------------------------------------------");
-    console.log("JSON Payload (Part 1):");
-    console.log(JSON.stringify(topicPayload, null, 2));
-    console.log("-------------------------------------------");
-    console.log("Final Multipart Request Body (Raw):");
-    console.log(requestBody.toString());
-    console.log("-------------------------------------------");
+    // console.log(
+    //   `Sending API call to: ${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/modules/${moduleId}/structure/`
+    // );
+    // console.log("-------------------------------------------");
+    // console.log("Final Request Headers:");
+    // console.log(`Authorization: Bearer ${d2lAccessToken}`);
+    // console.log(`Content-Type: multipart/mixed; boundary=${boundary}`);
+    // console.log(`Content-Length: ${requestBody.length}`);
+    // console.log("-------------------------------------------");
+    // console.log("JSON Payload (Part 1):");
+    // console.log(JSON.stringify(topicPayload, null, 2));
+    // console.log("-------------------------------------------");
+    // console.log("Final Multipart Request Body (Raw):");
+    // console.log(requestBody.toString());
+    // console.log("-------------------------------------------");
 
     const topicResp = await axios.post(
       `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/modules/${moduleId}/structure/`,
@@ -177,9 +169,10 @@ router.post("/insert", async (req, res) => {
     console.log(`Persistent D2L Image URL is: ${d2lImageUrl}`); // --- Step 4: HTML output and Deep Linking ---
 
     const finalHtmlFragment = `
-<img src="${d2lImageUrl}"
-     alt="${altText}"
-     title="${title}"
+<img  height="500" 
+      src="${d2lImageUrl}"
+      alt="${altText}"
+      title="${title}"
 >`;
     console.log("Generated HTML fragment for deep linking.");
 
@@ -215,11 +208,11 @@ router.post("/insert", async (req, res) => {
       }
     }
 
-    return res
-      .status(500)
-      .send(
-        `Failed to insert image: ${err.message || "An unknown error occurred."}`
-      );
+    return handleError(
+      res,
+      500,
+      `Failed to insert image: ${err.message || "An unknown error occurred."}`
+    );
   } finally {
     const d2lAccessToken = req.cookies.d2lAccessToken;
 

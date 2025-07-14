@@ -6,15 +6,6 @@ let tokenExpires = 0;
 const getAccessToken = async () => {
   if (accessToken && Date.now() < tokenExpires) return accessToken;
 
-  if (
-    !process.env.MAYO_AUTH_URL ||
-    !process.env.MAYO_CLIENT_ID ||
-    !process.env.MAYO_CLIENT_SECRET
-  ) {
-    console.error("[getAccessToken] Missing Mayo API env vars");
-    throw new Error("Missing Mayo API env vars");
-  }
-
   try {
     const response = await axios.post(
       process.env.MAYO_AUTH_URL,
@@ -43,4 +34,30 @@ const getAccessToken = async () => {
   }
 };
 
-module.exports = { getAccessToken };
+const mayoController = async (req, res) => {
+  try {
+    const accessToken = await getAccessToken();
+    const mayoResponse = await axios.get(process.env.MAYO_IMG_SEARCH_URL, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+      params: {
+        query: req.query.q,
+        pagenumber: req.query.page,
+        countperpage: req.query.limit,
+        format: "json",
+        fields:
+          "Path_TR7,Path_TR1,Title,SystemIdentifier,IncludeInheritedKeywords,CreateDate",
+      },
+    });
+    const items = mayoResponse?.data?.APIResponse?.Items || [];
+    const total = mayoResponse?.data?.APIResponse?.GlobalInfo?.TotalCount || 0;
+    res.json({ results: items, total });
+  } catch (err) {
+    console.error("[/api/images] ERROR:", err?.message || err);
+    const status = err.response?.status || 500;
+    res.status(status).json({ error: err.message });
+  }
+};
+
+module.exports = {
+  mayoController,
+};

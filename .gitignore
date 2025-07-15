@@ -12,6 +12,7 @@ dist
 dist-ssr
 *.local
 .env
+.env-prod
 /backend/public
 
 # Editor directories and files

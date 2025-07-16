@@ -16,5 +16,15 @@
   </head>
   <body>
     <div id="outlet"></div>
+    <script type="text/javascript">
+      document.addEventListener("DOMContentLoaded", function () {
+        setTimeout(function () {
+          parent.postMessage(
+            JSON.stringify({ subject: "lti.frameResize", height: 500 }),
+            "*"
+          );
+        }, 0);
+      });
+    </script>
   </body>
 </html>

@@ -4,8 +4,10 @@ import "@brightspace-ui/core/components/inputs/input-search.js";
 import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
 import "@brightspace-ui/core/components/alert/alert.js";
 import "@brightspace-ui/core/components/link/link.js";
+import "@brightspace-ui/core/components/button/button.js";
 import { getLtik } from "../utils/helper";
 import axios from "axios";
+import { Router } from "@vaadin/router";
 
 interface ImageItem {
   id: string;
@@ -37,9 +39,8 @@ export class SearchPage extends LitElement {
       margin-top: 1rem;
     }
     .thumbnail {
-      width: 280px;
-      height: 180px;
-      border: 1px solid #ccc;
+      width: 250px;
+      height: 150px;
       cursor: pointer;
       transition: transform 0.2s ease;
     }
@@ -71,13 +72,13 @@ export class SearchPage extends LitElement {
   `;
 
   @state() private searchTerm = "";
+  @state() private lastSearchTerm = "";
   @state() private results: ImageItem[] = [];
   @state() private totalCount = 0;
   @state() private page = 1;
   @state() private loading = false;
   @state() private loadingMore = false;
   @state() private ltik: string | null = null;
-  @state() private selected: ImageItem | null = null;
 
   private readonly limit = 10;
 
@@ -105,30 +106,9 @@ export class SearchPage extends LitElement {
       }));
       this.totalCount = res.data.total || items.length;
       this.page = 1;
+      this.lastSearchTerm = this.searchTerm;
     } catch (err) {
-      console.error("Search error", err);
-      // Fallback: fetch mock images from Lorem Picsum
-      try {
-        const fallbackRes = await axios.get(
-          `https://picsum.photos/v2/list?page=1&limit=${this.limit}`
-        );
-        const items = fallbackRes.data || [];
-        this.results = items.map((item: any) => ({
-          id: item.id,
-          name: item.author,
-          thumbnailUrl: `https://picsum.photos/id/${item.id}/280/180`,
-          fullImageUrl: item.download_url,
-          imageWidth: item.width,
-          imageHeight: item.height,
-          createDate: "",
-        }));
-        this.totalCount = items.length;
-        this.page = 1;
-      } catch (fallbackErr) {
-        console.error("Fallback image fetch error", fallbackErr);
-        this.results = [];
-        this.totalCount = 0;
-      }
+      console.error("Something went wrong while search on mayo server", err);
     } finally {
       this.loading = false;
     }
@@ -142,7 +122,7 @@ export class SearchPage extends LitElement {
 
     try {
       const res = await axios.get("/api/images", {
-        params: { q: this.searchTerm, page: nextPage, limit: this.limit },
+        params: { q: this.lastSearchTerm, page: nextPage, limit: this.limit },
         headers: { Authorization: `Bearer ${this.ltik}` },
       });
 
@@ -160,60 +140,18 @@ export class SearchPage extends LitElement {
       this.results = [...this.results, ...newImages];
       this.page = nextPage;
     } catch (err) {
-      console.error("Load more error", err);
-      // Fallback: fetch more mock images from Lorem Picsum
-      try {
-        const fallbackRes = await axios.get(
-          `https://picsum.photos/v2/list?page=${nextPage}&limit=${this.limit}`
-        );
-        const items = fallbackRes.data || [];
-        const newImages = items.map((item: any) => ({
-          id: item.id,
-          name: item.author,
-          thumbnailUrl: `https://picsum.photos/id/${item.id}/280/180`,
-          fullImageUrl: item.download_url,
-          imageWidth: item.width,
-          imageHeight: item.height,
-          createDate: "",
-        }));
-        this.results = [...this.results, ...newImages];
-        this.page = nextPage;
-        this.totalCount = this.results.length;
-      } catch (fallbackErr) {
-        console.error("Fallback load more error", fallbackErr);
-      }
+      console.error(
+        "Something went wrong while loading more on mayo server",
+        err
+      );
     } finally {
       this.loadingMore = false;
     }
   }
 
   private _select(image: ImageItem) {
-    this.selected = image;
-
-    const form = document.createElement("form");
-    form.method = "POST";
-    form.action = `/details?ltik=${this.ltik}`;
-    form.style.display = "none";
-
-    const fields = {
-      id: image.id,
-      name: image.name,
-      thumbnailUrl: image.thumbnailUrl,
-      fullImageUrl: image.fullImageUrl || "",
-      imageWidth: image.imageWidth?.toString() || "",
-      imageHeight: image.imageHeight?.toString() || "",
-      createDate: image.createDate || "",
-    };
-
-    for (const [key, value] of Object.entries(fields)) {
-      const input = document.createElement("input");
-      input.name = key;
-      input.value = value;
-      form.appendChild(input);
-    }
-
-    document.body.appendChild(form);
-    form.submit();
+    sessionStorage.setItem("selectedImage", JSON.stringify(image));
+    Router.go(`/details?ltik=${this.ltik}`);
   }
 
   render() {
@@ -226,32 +164,33 @@ export class SearchPage extends LitElement {
         @keydown=${(e: KeyboardEvent) =>
           e.key === "Enter" && this._triggerSearch()}
         .value=${this.searchTerm}
+        @search=${() => this._triggerSearch()}
+        @clear=${() => {
+          this.searchTerm = "";
+          this.results = [];
+          this.totalCount = 0;
+          this.page = 1;
+          this.lastSearchTerm = "";
+        }}
       ></d2l-input-search>
 
-      ${this.selected
-        ? html`<d2l-alert type="info"
-            >Selected: ${this.selected.name}</d2l-alert
-          >`
-        : null}
       ${this.loading
         ? html`<div class="spinner-container">
             <d2l-loading-spinner size="100"></d2l-loading-spinner>
           </div>`
-        : html`
-            <div class="thumbnail-container">
-              ${this.results.map(
-                (img) => html`
-                  <div class="thumbnail" @click=${() => this._select(img)}>
-                    <img
-                      src=${img.thumbnailUrl}
-                      alt=${img.name}
-                      crossorigin="anonymous"
-                    />
-                  </div>
-                `
-              )}
-            </div>
-          `}
+        : html`<div class="thumbnail-container">
+            ${this.results.map(
+              (img) => html`
+                <div class="thumbnail" @click=${() => this._select(img)}>
+                  <img
+                    src=${img.thumbnailUrl}
+                    alt=${img.name}
+                    crossorigin="anonymous"
+                  />
+                </div>
+              `
+            )}
+          </div>`}
       ${!this.loading && this.results.length < this.totalCount
         ? html`
             <div class="load-more-container">

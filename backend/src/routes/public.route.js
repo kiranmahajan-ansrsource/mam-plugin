@@ -1,12 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const {
-  publicDetailsController,
-  publicInsertController,
-} = require("../controllers/public.controller");
-
-router.post("/details", publicDetailsController);
+const { publicInsertController } = require("../controllers/public.controller");
 
 router.post("/insert", publicInsertController);
 

@@ -5,6 +5,7 @@ import "@brightspace-ui/core/components/description-list/description-list-wrappe
 import { descriptionListStyles } from "@brightspace-ui/core/components/description-list/description-list-wrapper.js";
 import { getLtik } from "../utils/helper";
 import { Router } from "@vaadin/router";
+import "@brightspace-ui/core/components/button/button.js";
 
 @customElement("details-page")
 export class DetailsPage extends LitElement {
@@ -17,7 +18,7 @@ export class DetailsPage extends LitElement {
         margin-top: 1rem;
       }
       .preview {
-        width: 480px;
+        height: 310px;
         border: 1px solid #ccc;
       }
       .preview img {
@@ -40,19 +41,39 @@ export class DetailsPage extends LitElement {
 
   private ltik: string = "";
 
-  connectedCallback(): void {
-    super.connectedCallback();
-    const params = new URLSearchParams(window.location.search);
+  firstUpdated() {
     this.ltik = getLtik();
-    this.image = {
-      id: params.get("id") || "",
-      name: params.get("name") || "",
-      thumbnailUrl: params.get("thumbnailUrl") || "",
-      fullImageUrl: params.get("fullImageUrl") || "",
-      imageWidth: Number(params.get("imageWidth") || 0),
-      imageHeight: Number(params.get("imageHeight") || 0),
-      createDate: params.get("createDate") || "",
-    };
+    const stored = sessionStorage.getItem("selectedImage");
+    console.log("DetailsPage: sessionStorage.getItem('selectedImage')", stored);
+    if (stored) {
+      try {
+        const img = JSON.parse(stored);
+        console.log("DetailsPage: Parsed image object", img);
+        this.image = {
+          id: img.id || "",
+          name: img.name || "",
+          thumbnailUrl: img.thumbnailUrl || "",
+          fullImageUrl: img.fullImageUrl || "",
+          imageWidth: img.imageWidth || 0,
+          imageHeight: img.imageHeight || 0,
+          createDate: img.createDate || "",
+        };
+        console.log("DetailsPage: Final image state", this.image);
+      } catch (e) {
+        console.error("DetailsPage: Error parsing selectedImage", e);
+      }
+    } else {
+      console.warn("DetailsPage: No selectedImage found in sessionStorage");
+      this.image = {
+        id: "",
+        name: "",
+        thumbnailUrl: "",
+        fullImageUrl: "",
+        imageWidth: 0,
+        imageHeight: 0,
+        createDate: "",
+      };
+    }
   }
 
   private goBack() {
@@ -60,11 +81,7 @@ export class DetailsPage extends LitElement {
   }
 
   private goNext() {
-    const searchParams = new URLSearchParams({
-      ...this.image,
-      ltik: this.ltik,
-    } as any);
-    Router.go(`/insert?${searchParams.toString()}`);
+    Router.go(`/insert?ltik=${this.ltik}`);
   }
 
   render() {
@@ -80,7 +97,7 @@ export class DetailsPage extends LitElement {
       <div class="container">
         <div class="preview">
           <img
-            src=${this.image.thumbnailUrl}
+            src=${this.image.fullImageUrl}
             alt=${this.image.name}
             crossorigin="anonymous"
           />
@@ -105,10 +122,16 @@ export class DetailsPage extends LitElement {
         </d2l-dl-wrapper>
       </div>
       <div style="margin-top: 1rem;">
-        <d2l-button @click=${this.goBack} secondary>Back</d2l-button>
-        <d2l-button @click=${this.goNext} primary style="margin-left: 1rem;">
-          Next
-        </d2l-button>
+        <d2l-button text="Back" @click=${this.goBack} secondary
+          >Back</d2l-button
+        >
+        <d2l-button
+          text="Next"
+          @click=${this.goNext}
+          primary
+          style="margin-left: 1rem;"
+          >Next</d2l-button
+        >
       </div>
     `;
   }

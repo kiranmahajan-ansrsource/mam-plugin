@@ -2,16 +2,11 @@ const lti = require("ltijs").Provider;
 const axios = require("axios");
 const { fetchImageBuffer, handleError } = require("../utils/common.utils");
 
-const publicDetailsController = (req, res) => {
-  const params = new URLSearchParams(req.body).toString();
-  lti.redirect(res, `/details?${params}`);
-};
-
 const publicInsertController = async (req, res) => {
   let moduleId, topicId;
   let orgUnitId;
   try {
-    const { imageUrl, title, altText } = req.body;
+    const { imageUrl, title, altText, imageId, decorative } = req.body;
     if (!imageUrl) {
       return handleError(res, 400, "Missing imageUrl in request body.");
     }
@@ -87,7 +82,9 @@ const publicInsertController = async (req, res) => {
     // --- Step 2: Fetch image as a buffer and define the D2L URL ---
     const { buffer, contentType } = await fetchImageBuffer(decodedImageUrl);
     const fileExt = contentType.split("/").pop();
-    const fileName = `img_${Date.now()}.${fileExt}`;
+    let baseName = imageId || `img_${Date.now()}`;
+    baseName = baseName.replace(/[^a-zA-Z0-9-_]/g, "_");
+    const fileName = `${baseName}.${fileExt}`;
     const d2lPath = `/content/enforced/${orgUnitId}-${orgId}/${fileName}`;
     console.log(`Fetched image and will store at D2l path: ${d2lPath}`);
     // --- Step 3: Create topic and upload image in a single multipart/mixed request ---
@@ -139,11 +136,14 @@ const publicInsertController = async (req, res) => {
     console.log(`Successfully created topic with ID: ${topicId}`);
     console.log(`Persistent D2L Image URL is: ${d2lImageUrl}`);
     // --- Step 4: HTML output and Deep Linking ---
+    let htmlAttrs = `height="500px" src="${d2lImageUrl}" title="${title}"`;
+    if (decorative === "true") {
+      htmlAttrs += ' role="presentation" alt=""';
+    } else {
+      htmlAttrs += ` alt="${altText}"`;
+    }
     const finalHtmlFragment = `
-    <img  height="500px"
-          src="${d2lImageUrl}"
-          alt="${altText}"
-          title="${title}">`;
+    <img ${htmlAttrs}>`;
     console.log("Generated HTML fragment for deep linking.");
     const items = [
       {
@@ -230,6 +230,5 @@ const publicInsertController = async (req, res) => {
 };
 
 module.exports = {
-  publicDetailsController,
   publicInsertController,
 };

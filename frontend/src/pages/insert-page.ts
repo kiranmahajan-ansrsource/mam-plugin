@@ -5,6 +5,7 @@ import "@brightspace-ui/core/components/inputs/input-checkbox.js";
 import "@brightspace-ui/core/components/alert/alert.js";
 import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
 import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
+import "../components/loader";
 import "@brightspace-ui/core/components/button/button.js";
 
 import { getLtik } from "../utils/helper";
@@ -17,13 +18,12 @@ export class InsertPage extends LitElement {
   static styles = css`
     .container {
       display: flex;
-      gap: 2rem;
       margin-top: 1rem;
     }
     .preview {
-      height: 310px;
       min-width: 310px;
-      max-width: 400px;
+      max-width: 500px;
+      min-height: 310px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -152,6 +152,9 @@ export class InsertPage extends LitElement {
   private goBack() {
     Router.go(`/details?ltik=${this.ltik}`);
   }
+  private goToSearch() {
+    Router.go(`/deeplink?ltik=${this.ltik}`);
+  }
 
   private async submitForm() {
     this.submitting = true;
@@ -205,13 +208,7 @@ export class InsertPage extends LitElement {
 
   render() {
     if (this.isLoadingAuth) {
-      return html`
-        <div
-          style="display: flex; justify-content: center; align-items: center; height: 100vh;"
-        >
-          <d2l-loading-spinner size="100"></d2l-loading-spinner>
-        </div>
-      `;
+      return html`<loader></loader>`;
     }
 
     return html`
@@ -219,30 +216,41 @@ export class InsertPage extends LitElement {
         <d2l-breadcrumb
           href="#"
           text="Search Results"
+          @click=${this.goToSearch}
+          style="cursor:pointer;"
+        ></d2l-breadcrumb>
+        <d2l-breadcrumb
+          href="#"
+          text="Details"
           @click=${this.goBack}
           style="cursor:pointer;"
         ></d2l-breadcrumb>
       </d2l-breadcrumbs>
-      <div class="container">
-        <div class="preview">
-          <img
-            src=${this.image.fullImageUrl}
-            alt=${this.image.name}
-            crossorigin="anonymous"
-          />
-        </div>
-        <div class="form-group">
-          <d2l-input-label for="alt"
-            >Alt Text (for accessibility, optional)</d2l-input-label
-          >
-          <d2l-input-text
-            label="alt text"
-            id="alt"
-            .value=${this.altText}
-            placeholder="e.g. Chest X-ray showing..."
-            ?disabled=${this.isDecorative}
-            @input=${(e: any) => (this.altText = e.target.value)}
-          ></d2l-input-text>
+      <div
+        class="container"
+        style="flex-direction:column; align-items:flex-start;"
+      >
+        <div style="display:flex; width:100%; gap:2rem;">
+          <div class="preview">
+            <img
+              src=${this.image.fullImageUrl}
+              alt=${this.image.name}
+              crossorigin="anonymous"
+            />
+          </div>
+          <div class="form-group">
+            <d2l-input-label for="alt"
+              >Alt Text (for accessibility, optional)</d2l-input-label
+            >
+            <d2l-input-text
+              label="alt text"
+              id="alt"
+              .value=${this.altText}
+              placeholder="e.g. Chest X-ray showing..."
+              ?disabled=${this.isDecorative}
+              @input=${(e: any) => (this.altText = e.target.value)}
+            ></d2l-input-text>
+          </div>
           <d2l-input-checkbox
             label="Mark image as decorative"
             .checked=${this.isDecorative}

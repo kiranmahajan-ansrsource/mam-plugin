@@ -1,5 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
+import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
+import "../components/loader";
 import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
 import "@brightspace-ui/core/components/description-list/description-list-wrapper.js";
 import { descriptionListStyles } from "@brightspace-ui/core/components/description-list/description-list-wrapper.js";
@@ -20,8 +22,13 @@ export class DetailsPage extends LitElement {
         margin-top: 1rem;
       }
       .preview {
-        height: 310px;
+        min-width: 310px;
+        max-width: 500px;
+        min-height: 310px;
         border: 1px solid #ccc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
       }
       .preview img {
         width: 100%;
@@ -40,10 +47,11 @@ export class DetailsPage extends LitElement {
     imageHeight: 0,
     createDate: "",
   };
+  @state() private isImageLoading: boolean = true;
 
   private ltik: string = "";
 
-  firstUpdated() {
+  async firstUpdated() {
     this.ltik = getLtik();
     const stored = sessionStorage.getItem("selectedImage");
     if (stored) {
@@ -84,6 +92,9 @@ export class DetailsPage extends LitElement {
   }
 
   render() {
+    if (this.isImageLoading) {
+      return html`<loader></loader>`;
+    }
     return html`
       <d2l-breadcrumbs>
         <d2l-breadcrumb
@@ -97,8 +108,11 @@ export class DetailsPage extends LitElement {
         <div class="preview">
           <img
             src=${this.image.fullImageUrl}
-            alt=${this.image.name}
+            alt="${this.image.name || this.image.id}"
             crossorigin="anonymous"
+            style="display:${this.isImageLoading ? "none" : "block"};"
+            @load=${() => (this.isImageLoading = false)}
+            @error=${() => (this.isImageLoading = false)}
           />
         </div>
         <d2l-dl-wrapper>

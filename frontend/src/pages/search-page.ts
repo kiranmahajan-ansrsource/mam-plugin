@@ -5,6 +5,8 @@ import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
 import "@brightspace-ui/core/components/alert/alert.js";
 import "@brightspace-ui/core/components/link/link.js";
 import "@brightspace-ui/core/components/button/button.js";
+import "@brightspace-ui/core/components/paging/pager-load-more.js";
+import "../components/pageable-wrapper";
 
 import { getLtik } from "../utils/helper";
 import axios from "axios";
@@ -29,6 +31,7 @@ export class SearchPage extends LitElement {
       flex-wrap: wrap;
       gap: 1rem;
       margin-top: 1rem;
+      margin-bottom: 1rem;
     }
     .thumbnail {
       width: 250px;
@@ -44,18 +47,8 @@ export class SearchPage extends LitElement {
       height: 100%;
       object-fit: cover;
     }
-    .load-more-container {
-      text-align: center;
-      margin-top: 1.5rem;
-      font-size: 0.9rem;
-      color: #333;
-      background-color: #f9fbff;
-      border: 1px solid #d9e7f7;
-      border-radius: 6px;
-      padding: 12px;
-    }
     .spinner-container {
-      height: 100%;
+      height: 60vh;
       width: 100%;
       display: flex;
       flex-direction: column;
@@ -179,34 +172,38 @@ export class SearchPage extends LitElement {
       ></d2l-input-search>
 
       ${this.loading
-        ? html`<div class="spinner-container">
-            <d2l-loading-spinner size="100"></d2l-loading-spinner>
-          </div>`
-        : html`<div class="thumbnail-container">
-            ${this.results.map(
-              (img) => html`
-                <div class="thumbnail" @click=${() => this._select(img)}>
-                  <img
-                    src=${img.thumbnailUrl}
-                    alt=${img.name}
-                    crossorigin="anonymous"
-                  />
-                </div>
-              `
-            )}
-          </div>`}
-      ${!this.loading && this.results.length < this.totalCount
         ? html`
-            <div class="load-more-container">
-              ${this.loadingMore
-                ? html`<d2l-loading-spinner small></d2l-loading-spinner>`
-                : html` <d2l-link href="#" @click=${this.loadMore}>
-                      Load More
-                    </d2l-link>
-                    | ${this.results.length} of ${this.totalCount}`}
+            <div class="spinner-container">
+              <d2l-loading-spinner size="100"></d2l-loading-spinner>
             </div>
           `
-        : null}
+        : html`
+            <d2l-pageable-wrapper .itemCount=${this.totalCount}>
+              <div class="thumbnail-container">
+                ${this.results.map(
+                  (img) => html`
+                    <div class="thumbnail" @click=${() => this._select(img)}>
+                      <img
+                        src=${img.thumbnailUrl}
+                        alt=${img.name}
+                        crossorigin="anonymous"
+                      />
+                    </div>
+                  `
+                )}
+              </div>
+
+              <d2l-pager-load-more
+                slot="pager"
+                ?has-more=${this.results.length < this.totalCount}
+                .pageSize=${this.limit}
+                @d2l-pager-load-more=${async (e: CustomEvent) => {
+                  await this.loadMore();
+                  e.detail.complete();
+                }}
+              ></d2l-pager-load-more>
+            </d2l-pageable-wrapper>
+          `}
     `;
   }
 }

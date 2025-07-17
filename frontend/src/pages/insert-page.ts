@@ -1,11 +1,12 @@
 import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import "@brightspace-ui/core/components/inputs/input-text.js";
+import "@brightspace-ui/core/components/inputs/input-textarea.js";
 import "@brightspace-ui/core/components/inputs/input-checkbox.js";
 import "@brightspace-ui/core/components/alert/alert.js";
 import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
 import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
-import "../components/loader";
+import "../components/loader-spinner";
 import "@brightspace-ui/core/components/button/button.js";
 
 import { getLtik } from "../utils/helper";
@@ -15,43 +16,60 @@ import type { ImageItem } from "../types/image-item";
 
 @customElement("insert-page")
 export class InsertPage extends LitElement {
-  static styles = css`
-    .container {
-      display: flex;
-      margin-top: 1rem;
-    }
-    .preview {
-      min-width: 310px;
-      max-width: 500px;
-      min-height: 310px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .preview img {
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-    }
-    .form-group {
-      max-width: 400px;
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-    }
-    .form-actions {
-      margin-top: 1rem;
-      display: flex;
-      gap: 1rem;
-    }
-  `;
+  static styles = [
+    css`
+      .container {
+        display: flex;
+        margin-top: 1rem;
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .horizontal-flex {
+        display: flex;
+        width: 100%;
+        gap: 1rem;
+      }
+      .preview {
+        width: 500px;
+        height: 310px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .preview img {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        object-position: center;
+      }
+      .form-group {
+        max-width: 400px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        padding-right: 0.5rem;
+      }
+      .form-actions {
+        margin-top: 1rem;
+        display: flex;
+        gap: 1rem;
+      }
+      .checkbox-margin {
+        margin-top: 0.5rem;
+      }
+    `,
+  ];
 
   @state() private ltik: string = "";
   @state() private altText: string = "";
   @state() private isDecorative: boolean = false;
   @state() private submitting = false;
-  @state() private isLoadingAuth = true;
+  @state() private isAuthenticatedUser = false;
 
   @state() private image: ImageItem = {
     id: "",
@@ -104,7 +122,6 @@ export class InsertPage extends LitElement {
     }
 
     try {
-      this.isLoadingAuth = true;
       const response = await axios.get("/oauth/check", {
         withCredentials: true,
       });
@@ -116,17 +133,21 @@ export class InsertPage extends LitElement {
       );
 
       if (
-        response.status !== 200 ||
-        !response.data ||
-        !response.data.authenticated
+        response.status === 200 &&
+        response.data &&
+        response.data.authenticated
       ) {
+        this.isAuthenticatedUser = true;
+        return;
+      } else {
         const currentPath = window.location.pathname;
         const currentSearchParams = window.location.search;
         const returnToUrl = `${currentPath}${currentSearchParams}`;
-
-        window.location.href = `/oauth/login?returnTo=${encodeURIComponent(
-          returnToUrl
-        )}`;
+        setTimeout(() => {
+          window.location.href = `/oauth/login?returnTo=${encodeURIComponent(
+            returnToUrl
+          )}`;
+        }, 500);
         return;
       }
     } catch (error: any) {
@@ -142,10 +163,10 @@ export class InsertPage extends LitElement {
       console.error(
         "Failed to check D2L authentication status. Please try again."
       );
-      window.location.href = "/deeplink";
+      setTimeout(() => {
+        window.location.href = "/deeplink";
+      }, 500);
       return;
-    } finally {
-      this.isLoadingAuth = false;
     }
   }
 
@@ -195,6 +216,7 @@ export class InsertPage extends LitElement {
       }
 
       document.body.appendChild(form);
+      sessionStorage.removeItem("selectedImage");
       form.submit();
     } catch (err: any) {
       console.error(err);
@@ -207,8 +229,8 @@ export class InsertPage extends LitElement {
   }
 
   render() {
-    if (this.isLoadingAuth) {
-      return html`<loader></loader>`;
+    if (!this.isAuthenticatedUser) {
+      return html`<loader-spinner .overlay=${true}></loader-spinner>`;
     }
 
     return html`
@@ -226,11 +248,8 @@ export class InsertPage extends LitElement {
           style="cursor:pointer;"
         ></d2l-breadcrumb>
       </d2l-breadcrumbs>
-      <div
-        class="container"
-        style="flex-direction:column; align-items:flex-start;"
-      >
-        <div style="display:flex; width:100%; gap:2rem;">
+      <div class="container">
+        <div class="horizontal-flex">
           <div class="preview">
             <img
               src=${this.image.fullImageUrl}
@@ -239,26 +258,25 @@ export class InsertPage extends LitElement {
             />
           </div>
           <div class="form-group">
-            <d2l-input-label for="alt"
-              >Alt Text (for accessibility, optional)</d2l-input-label
-            >
-            <d2l-input-text
-              label="alt text"
-              id="alt"
+            <d2l-input-textarea
+              label="Alternative Text (Describe your image)"
               .value=${this.altText}
-              placeholder="e.g. Chest X-ray showing..."
+              rows="3"
+              max-rows="5"
               ?disabled=${this.isDecorative}
               @input=${(e: any) => (this.altText = e.target.value)}
-            ></d2l-input-text>
+              style="font-size: 1.1em;"
+            ></d2l-input-textarea>
+            <d2l-input-checkbox
+              class="checkbox-margin"
+              .checked=${this.isDecorative}
+              @change=${(e: any) => {
+                this.isDecorative = e.target.checked;
+                if (this.isDecorative) this.altText = "";
+              }}
+              >This image is decorative</d2l-input-checkbox
+            >
           </div>
-          <d2l-input-checkbox
-            label="Mark image as decorative"
-            .checked=${this.isDecorative}
-            @change=${(e: any) => {
-              this.isDecorative = e.target.checked;
-              if (this.isDecorative) this.altText = "";
-            }}
-          ></d2l-input-checkbox>
         </div>
         <div class="form-actions">
           <d2l-button text="Back" @click=${this.goBack} secondary

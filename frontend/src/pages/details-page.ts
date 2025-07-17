@@ -1,7 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
-import "../components/loader";
+import "../components/loader-spinner";
 import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
 import "@brightspace-ui/core/components/description-list/description-list-wrapper.js";
 import { descriptionListStyles } from "@brightspace-ui/core/components/description-list/description-list-wrapper.js";
@@ -22,18 +22,21 @@ export class DetailsPage extends LitElement {
         margin-top: 1rem;
       }
       .preview {
-        min-width: 310px;
-        max-width: 500px;
-        min-height: 310px;
-        border: 1px solid #ccc;
+        width: 500px;
+        height: 310px;
         display: flex;
         align-items: center;
         justify-content: center;
+        position: relative;
+        overflow: hidden;
       }
       .preview img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
+        max-width: 100%;
+        max-height: 100%;
+        width: auto;
+        height: auto;
+        object-fit: contain;
+        object-position: center;
       }
     `,
   ];
@@ -92,9 +95,6 @@ export class DetailsPage extends LitElement {
   }
 
   render() {
-    if (this.isImageLoading) {
-      return html`<loader></loader>`;
-    }
     return html`
       <d2l-breadcrumbs>
         <d2l-breadcrumb
@@ -106,6 +106,9 @@ export class DetailsPage extends LitElement {
       </d2l-breadcrumbs>
       <div class="container">
         <div class="preview">
+          ${this.isImageLoading
+            ? html`<loader-spinner></loader-spinner>`
+            : null}
           <img
             src=${this.image.fullImageUrl}
             alt="${this.image.name || this.image.id}"

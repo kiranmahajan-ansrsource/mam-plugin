@@ -24,6 +24,13 @@ lti.setup(
   COOKIE_SECRET
 );
 
+lti.onInvalidToken((req, res) => {
+  if (res?.locals?.err?.details?.message === "TOKEN_TOO_OLD") {
+    return res.redirect("/login");
+  }
+  return res.status(401).send(res.locals.err);
+});
+
 lti.whitelist(
   "/assets",
   "/favicon.ico",

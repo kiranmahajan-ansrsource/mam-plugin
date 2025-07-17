@@ -3,8 +3,10 @@ import { customElement, state } from "lit/decorators.js";
 import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
 import "@brightspace-ui/core/components/description-list/description-list-wrapper.js";
 import { descriptionListStyles } from "@brightspace-ui/core/components/description-list/description-list-wrapper.js";
+
 import { getLtik } from "../utils/helper";
 import { Router } from "@vaadin/router";
+import type { ImageItem } from "../types/image-item";
 import "@brightspace-ui/core/components/button/button.js";
 
 @customElement("details-page")
@@ -29,7 +31,7 @@ export class DetailsPage extends LitElement {
     `,
   ];
 
-  @state() private image = {
+  @state() private image: ImageItem = {
     id: "",
     name: "",
     thumbnailUrl: "",
@@ -44,11 +46,9 @@ export class DetailsPage extends LitElement {
   firstUpdated() {
     this.ltik = getLtik();
     const stored = sessionStorage.getItem("selectedImage");
-    console.log("DetailsPage: sessionStorage.getItem('selectedImage')", stored);
     if (stored) {
       try {
-        const img = JSON.parse(stored);
-        console.log("DetailsPage: Parsed image object", img);
+        const img: ImageItem = JSON.parse(stored);
         this.image = {
           id: img.id || "",
           name: img.name || "",
@@ -58,7 +58,6 @@ export class DetailsPage extends LitElement {
           imageHeight: img.imageHeight || 0,
           createDate: img.createDate || "",
         };
-        console.log("DetailsPage: Final image state", this.image);
       } catch (e) {
         console.error("DetailsPage: Error parsing selectedImage", e);
       }

@@ -6,7 +6,7 @@ const publicInsertController = async (req, res) => {
   let moduleId, topicId;
   let orgUnitId;
   try {
-    const { imageUrl, title, altText, imageId, decorative } = req.body;
+    const { imageUrl, title, altText, imageId, isDecorative } = req.body;
     if (!imageUrl) {
       return handleError(res, 400, "Missing imageUrl in request body.");
     }
@@ -135,16 +135,23 @@ const publicInsertController = async (req, res) => {
     const d2lImageUrl = topicResp.data?.Url;
     console.log(`Successfully created topic with ID: ${topicId}`);
     console.log(`Persistent D2L Image URL is: ${d2lImageUrl}`);
+
     // --- Step 4: HTML output and Deep Linking ---
-    let htmlAttrs = `height="500px" src="${d2lImageUrl}" title="${title}"`;
-    if (decorative === "true") {
-      htmlAttrs += ' role="presentation" alt=""';
+    let htmlAttrs = `height="auto" width="600px" src="${d2lImageUrl}"`;
+    const isDecorativeFlag =
+      isDecorative === true ||
+      (typeof isDecorative === "string" &&
+        isDecorative.toLowerCase() === "true");
+    console.log("[DEBUG] isDecorativeFlag computed as:", isDecorativeFlag);
+
+    if (isDecorativeFlag) {
+      htmlAttrs += ' alt="" role="presentation"';
     } else {
       htmlAttrs += ` alt="${altText}"`;
     }
     const finalHtmlFragment = `
     <img ${htmlAttrs}>`;
-    console.log("Generated HTML fragment for deep linking.");
+    console.log("[DEBUG] Final HTML fragment to insert:", finalHtmlFragment);
     const items = [
       {
         type: "html",

@@ -5,26 +5,18 @@ import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
 import "@brightspace-ui/core/components/alert/alert.js";
 import "@brightspace-ui/core/components/link/link.js";
 import "@brightspace-ui/core/components/button/button.js";
+
 import { getLtik } from "../utils/helper";
 import axios from "axios";
 import { Router } from "@vaadin/router";
-
-interface ImageItem {
-  id: string;
-  name: string;
-  thumbnailUrl: string;
-  fullImageUrl?: string;
-  imageWidth?: number;
-  imageHeight?: number;
-  createDate?: string;
-}
+import type { ImageItem } from "../types/image-item";
 
 @customElement("search-page")
 export class SearchPage extends LitElement {
   static styles = css`
     :host {
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
     }
     .search-heading {
       margin-top: 1rem;
@@ -95,15 +87,18 @@ export class SearchPage extends LitElement {
         headers: { Authorization: `Bearer ${this.ltik}` },
       });
       const items = res.data.results || [];
-      this.results = items.map((item: any) => ({
-        id: item.SystemIdentifier,
-        name: item.Title,
-        thumbnailUrl: item.Path_TR7?.URI || "",
-        fullImageUrl: item.Path_TR1?.URI || "",
-        imageWidth: item.Path_TR1?.Width,
-        imageHeight: item.Path_TR1?.Height,
-        createDate: item.CreateDate || "",
-      }));
+      this.results = items.map(
+        (item: any) =>
+          ({
+            id: item.SystemIdentifier,
+            name: item.Title,
+            thumbnailUrl: item.Path_TR7?.URI || "",
+            fullImageUrl: item.Path_TR1?.URI || "",
+            imageWidth: item.Path_TR1?.Width,
+            imageHeight: item.Path_TR1?.Height,
+            createDate: item.CreateDate || "",
+          } as ImageItem)
+      );
       this.totalCount = res.data.total || items.length;
       this.page = 1;
       this.lastSearchTerm = this.searchTerm;
@@ -127,15 +122,18 @@ export class SearchPage extends LitElement {
       });
 
       const items = res.data.results || [];
-      const newImages = items.map((item: any) => ({
-        id: item.SystemIdentifier,
-        name: item.Title,
-        thumbnailUrl: item.Path_TR7?.URI || "",
-        fullImageUrl: item.Path_TR1?.URI || "",
-        imageWidth: item.Path_TR1?.Width,
-        imageHeight: item.Path_TR1?.Height,
-        createDate: item.CreateDate || "",
-      }));
+      const newImages = items.map(
+        (item: any) =>
+          ({
+            id: item.SystemIdentifier,
+            name: item.Title,
+            thumbnailUrl: item.Path_TR7?.URI || "",
+            fullImageUrl: item.Path_TR1?.URI || "",
+            imageWidth: item.Path_TR1?.Width,
+            imageHeight: item.Path_TR1?.Height,
+            createDate: item.CreateDate || "",
+          } as ImageItem)
+      );
 
       this.results = [...this.results, ...newImages];
       this.page = nextPage;
@@ -150,6 +148,9 @@ export class SearchPage extends LitElement {
   }
 
   private _select(image: ImageItem) {
+    if (sessionStorage.getItem("selectedImage")) {
+      sessionStorage.removeItem("selectedImage");
+    }
     sessionStorage.setItem("selectedImage", JSON.stringify(image));
     Router.go(`/details?ltik=${this.ltik}`);
   }
@@ -160,11 +161,14 @@ export class SearchPage extends LitElement {
       <d2l-input-search
         label="Search"
         placeholder="e.g. x-ray"
+        .value=${this.searchTerm}
+        @d2l-input-search-searched=${(e: any) => {
+          this.searchTerm = e.detail.value;
+          this._triggerSearch();
+        }}
         @input=${(e: any) => (this.searchTerm = e.target.value)}
         @keydown=${(e: KeyboardEvent) =>
           e.key === "Enter" && this._triggerSearch()}
-        .value=${this.searchTerm}
-        @search=${() => this._triggerSearch()}
         @clear=${() => {
           this.searchTerm = "";
           this.results = [];

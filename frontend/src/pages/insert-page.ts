@@ -6,9 +6,11 @@ import "@brightspace-ui/core/components/alert/alert.js";
 import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
 import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
 import "@brightspace-ui/core/components/button/button.js";
+
 import { getLtik } from "../utils/helper";
 import { Router } from "@vaadin/router";
 import axios from "axios";
+import type { ImageItem } from "../types/image-item";
 
 @customElement("insert-page")
 export class InsertPage extends LitElement {
@@ -47,13 +49,18 @@ export class InsertPage extends LitElement {
 
   @state() private ltik: string = "";
   @state() private altText: string = "";
-  @state() private decorative: boolean = false;
+  @state() private isDecorative: boolean = false;
   @state() private submitting = false;
   @state() private isLoadingAuth = true;
 
-  @state() private image = {
-    fullImageUrl: "",
+  @state() private image: ImageItem = {
+    id: "",
     name: "",
+    thumbnailUrl: "",
+    fullImageUrl: "",
+    imageWidth: 0,
+    imageHeight: 0,
+    createDate: "",
   };
   @state() public title: string = "";
 
@@ -61,16 +68,26 @@ export class InsertPage extends LitElement {
     this.ltik = getLtik();
     const stored = sessionStorage.getItem("selectedImage");
     if (stored) {
-      const img = JSON.parse(stored);
+      const img: ImageItem = JSON.parse(stored);
       this.image = {
-        fullImageUrl: img.fullImageUrl || "",
+        id: img.id || "",
         name: img.name || "",
+        thumbnailUrl: img.thumbnailUrl || "",
+        fullImageUrl: img.fullImageUrl || "",
+        imageWidth: img.imageWidth || 0,
+        imageHeight: img.imageHeight || 0,
+        createDate: img.createDate || "",
       };
       this.title = img.name || "";
     } else {
       this.image = {
-        fullImageUrl: "",
+        id: "",
         name: "",
+        thumbnailUrl: "",
+        fullImageUrl: "",
+        imageWidth: 0,
+        imageHeight: 0,
+        createDate: "",
       };
       this.title = "";
     }
@@ -88,8 +105,6 @@ export class InsertPage extends LitElement {
 
     try {
       this.isLoadingAuth = true;
-      console.log("Checking D2L authentication status via /oauth/check...");
-
       const response = await axios.get("/oauth/check", {
         withCredentials: true,
       });
@@ -109,16 +124,11 @@ export class InsertPage extends LitElement {
         const currentSearchParams = window.location.search;
         const returnToUrl = `${currentPath}${currentSearchParams}`;
 
-        console.log(
-          `D2L Access Token missing or authentication check failed. Redirecting to OAuth login with returnTo: ${returnToUrl}`
-        );
-
         window.location.href = `/oauth/login?returnTo=${encodeURIComponent(
           returnToUrl
         )}`;
         return;
       }
-      console.log("D2L Access Token found. Proceeding with page load.");
     } catch (error: any) {
       console.error(
         "Error checking D2L authentication status:",
@@ -160,24 +170,24 @@ export class InsertPage extends LitElement {
       const altTextInput = document.createElement("input");
       altTextInput.name = "altText";
       altTextInput.value = this.altText;
-      altTextInput.disabled = this.decorative;
+      altTextInput.disabled = this.isDecorative;
       form.appendChild(altTextInput);
 
-      const decorativeInput = document.createElement("input");
-      decorativeInput.name = "decorative";
-      decorativeInput.value = this.decorative ? "true" : "false";
-      decorativeInput.type = "hidden";
-      form.appendChild(decorativeInput);
+      const isDecorativeInput = document.createElement("input");
+      isDecorativeInput.name = "isDecorative";
+      isDecorativeInput.value = this.isDecorative ? "true" : "false";
+      isDecorativeInput.type = "hidden";
+      form.appendChild(isDecorativeInput);
 
       const titleInput = document.createElement("input");
       titleInput.name = "title";
       titleInput.value = this.title;
       form.appendChild(titleInput);
 
-      if (this.image.name) {
+      if (this.image.id) {
         const imageIdInput = document.createElement("input");
         imageIdInput.name = "imageId";
-        imageIdInput.value = this.image.name;
+        imageIdInput.value = this.image.id;
         form.appendChild(imageIdInput);
       }
 
@@ -230,37 +240,37 @@ export class InsertPage extends LitElement {
             id="alt"
             .value=${this.altText}
             placeholder="e.g. Chest X-ray showing..."
-            ?disabled=${this.decorative}
+            ?disabled=${this.isDecorative}
             @input=${(e: any) => (this.altText = e.target.value)}
           ></d2l-input-text>
           <d2l-input-checkbox
-            label="Decorative (no alt text, image is for presentation only)"
-            .checked=${this.decorative}
+            label="Mark image as decorative"
+            .checked=${this.isDecorative}
             @change=${(e: any) => {
-              this.decorative = e.target.checked;
-              if (this.decorative) this.altText = "";
+              this.isDecorative = e.target.checked;
+              if (this.isDecorative) this.altText = "";
             }}
           ></d2l-input-checkbox>
-          <div class="form-actions">
-            <d2l-button text="Back" @click=${this.goBack} secondary
-              >Back</d2l-button
-            >
-            <d2l-button
-              text="Insert"
-              primary
-              @click=${this.submitForm}
-              ?disabled=${this.decorative
-                ? false
-                : !this.altText ||
-                  this.submitting ||
-                  !this.image.fullImageUrl ||
-                  !this.image.name}
-            >
-              ${this.submitting
-                ? html`<d2l-loading-spinner small></d2l-loading-spinner>`
-                : "Insert"}
-            </d2l-button>
-          </div>
+        </div>
+        <div class="form-actions">
+          <d2l-button text="Back" @click=${this.goBack} secondary
+            >Back</d2l-button
+          >
+          <d2l-button
+            text="Insert"
+            primary
+            @click=${this.submitForm}
+            ?disabled=${this.isDecorative
+              ? false
+              : !this.altText ||
+                this.submitting ||
+                !this.image.fullImageUrl ||
+                !this.image.name}
+          >
+            ${this.submitting
+              ? html`<d2l-loading-spinner small></d2l-loading-spinner>`
+              : "Insert"}
+          </d2l-button>
         </div>
       </div>
     `;

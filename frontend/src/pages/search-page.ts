@@ -57,7 +57,7 @@ export class SearchPage extends LitElement {
     }
 
     d2l-input-search {
-      width: 99%;
+      width: 99.5%;
     }
   `;
 
@@ -159,7 +159,7 @@ export class SearchPage extends LitElement {
 
       <d2l-input-search
         label="Search"
-        placeholder="e.g. x-ray"
+        placeholder="e.g. X-Ray"
         .value=${this.searchTerm}
         @d2l-input-search-searched=${(e: any) => {
           this.searchTerm = e.detail.value;

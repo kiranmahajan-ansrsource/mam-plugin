@@ -14,7 +14,7 @@ export class SearchSummary extends LitElement {
       justify-content: start;
       align-items: center;
       padding: 0.75rem 1rem;
-      border-radius: 6px;
+      border-radius: 5px;
       margin-top: 1rem;
       cursor: pointer;
     }

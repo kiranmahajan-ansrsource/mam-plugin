@@ -2,6 +2,7 @@ const { validateEnv } = require("./env");
 const path = require("path");
 const lti = require("ltijs").Provider;
 const routes = require("./routes");
+const { logDecodedJwt } = require("./jwtLogger");
 const isDev = process.env.NODE_ENV !== "production";
 const publicPath = path.join(__dirname, "../public");
 const COOKIE_SECRET = process.env.LTI_KEY;
@@ -45,13 +46,14 @@ lti.onConnect(async (token, req, res) => {
 });
 
 lti.onDeepLinking(async (token, req, res) => {
+  logDecodedJwt("Deep Linking Request", token, "request");
   return lti.redirect(res, "/deeplink", { newResource: true });
 });
 
 lti.app.use(routes);
 
 const setup = async () => {
-  await lti.deploy({ port: process.env.PORT });
+  await lti.deploy({ port: process.env.PORT, silent: true });
   await lti.registerPlatform({
     url: process.env.PLATFORM_URL,
     name: "Brightspace",

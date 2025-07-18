@@ -1,6 +1,7 @@
 const lti = require("ltijs").Provider;
 const axios = require("axios");
 const { fetchImageBuffer, handleError } = require("../utils/common.utils");
+const { logDecodedJwt } = require("../jwtLogger");
 
 const publicInsertController = async (req, res) => {
   let moduleId, topicId;
@@ -161,12 +162,23 @@ const publicInsertController = async (req, res) => {
       },
     ];
     console.log("Creating Deep Linking Form...");
+
+    const jwt = await lti.DeepLinking.createDeepLinkingMessage(
+      res.locals.token,
+      items,
+      {
+        message: "Successfully registered resource!",
+      }
+    );
+
+    logDecodedJwt("Deep Linking Response", jwt, "response");
+
     const formHtml = await lti.DeepLinking.createDeepLinkingForm(
       res.locals.token,
       items,
       { message: "Image inserted successfully into D2L!" }
     );
-    console.log("Deep Link Items Sent.");
+    console.log("Deep Link Items Sent.", formHtml);
     return formHtml ? res.send(formHtml) : res.sendStatus(500);
   } catch (err) {
     console.error(

@@ -69,39 +69,54 @@ export class SearchPage extends LitElement {
   @state() private loading = false;
   @state() private loadingMore = false;
   @state() private ltik: string | null = null;
+  @state() private errorMessage = "";
+  @state() private hasSearched = false;
 
   private readonly limit = 10;
+
+  private _resetSearch() {
+    this.searchTerm = "";
+    this.lastSearchTerm = "";
+    this.results = [];
+    this.totalCount = 0;
+    this.page = 1;
+    this.hasSearched = false;
+    this.errorMessage = "";
+  }
 
   firstUpdated() {
     this.ltik = getLtik();
   }
 
+  private _mapImageItems(items: any[]): ImageItem[] {
+    return items.map((item: any) => ({
+      id: item.SystemIdentifier,
+      name: item.Title,
+      thumbnailUrl: item.Path_TR7?.URI || "",
+      fullImageUrl: item.Path_TR1?.URI || "",
+      imageWidth: item.Path_TR1?.Width,
+      imageHeight: item.Path_TR1?.Height,
+      createDate: item.CreateDate || "",
+    }));
+  }
   private async _triggerSearch() {
     if (!this.searchTerm.trim()) return;
     this.loading = true;
+    this.errorMessage = "";
     try {
       const res = await axios.get("/api/images", {
         params: { q: this.searchTerm, page: 1, limit: this.limit },
         headers: { Authorization: `Bearer ${this.ltik}` },
       });
       const items = res.data.results || [];
-      this.results = items.map(
-        (item: any) =>
-          ({
-            id: item.SystemIdentifier,
-            name: item.Title,
-            thumbnailUrl: item.Path_TR7?.URI || "",
-            fullImageUrl: item.Path_TR1?.URI || "",
-            imageWidth: item.Path_TR1?.Width,
-            imageHeight: item.Path_TR1?.Height,
-            createDate: item.CreateDate || "",
-          } as ImageItem)
-      );
+      this.results = this._mapImageItems(items);
       this.totalCount = res.data.total || items.length;
       this.page = 1;
       this.lastSearchTerm = this.searchTerm;
+      this.hasSearched = true;
     } catch (err) {
-      console.error("Something went wrong while search on mayo server", err);
+      console.error("Search error:", err);
+      this.errorMessage = "Something went wrong. Please try again.";
     } finally {
       this.loading = false;
     }
@@ -120,35 +135,19 @@ export class SearchPage extends LitElement {
       });
 
       const items = res.data.results || [];
-      const newImages = items.map(
-        (item: any) =>
-          ({
-            id: item.SystemIdentifier,
-            name: item.Title,
-            thumbnailUrl: item.Path_TR7?.URI || "",
-            fullImageUrl: item.Path_TR1?.URI || "",
-            imageWidth: item.Path_TR1?.Width,
-            imageHeight: item.Path_TR1?.Height,
-            createDate: item.CreateDate || "",
-          } as ImageItem)
-      );
+      const newImages = this._mapImageItems(items);
 
       this.results = [...this.results, ...newImages];
       this.page = nextPage;
     } catch (err) {
-      console.error(
-        "Something went wrong while loading more on mayo server",
-        err
-      );
+      console.error("Load more error:", err);
+      this.errorMessage = "Failed to load more images.";
     } finally {
       this.loadingMore = false;
     }
   }
 
   private _select(image: ImageItem) {
-    if (sessionStorage.getItem("selectedImage")) {
-      sessionStorage.removeItem("selectedImage");
-    }
     sessionStorage.setItem("selectedImage", JSON.stringify(image));
     Router.go(`/details?ltik=${this.ltik}`);
   }
@@ -164,33 +163,24 @@ export class SearchPage extends LitElement {
         @d2l-input-search-searched=${(e: any) => {
           this.searchTerm = e.detail.value;
           if (!this.searchTerm.trim()) {
-            this.results = [];
-            this.totalCount = 0;
-            this.page = 1;
-            this.lastSearchTerm = "";
+            this._resetSearch();
           } else {
             this._triggerSearch();
           }
         }}
         @input=${(e: any) => (this.searchTerm = e.target.value)}
-        @keydown=${(e: KeyboardEvent) => {
-          if (e.key === "Enter") this._triggerSearch();
-        }}
       ></d2l-input-search>
 
-      ${this.lastSearchTerm
+      ${this.hasSearched
         ? html`
             <search-summary
               .totalResults=${this.totalCount}
-              @clear-search=${() => {
-                this.searchTerm = "";
-                this.results = [];
-                this.totalCount = 0;
-                this.page = 1;
-                this.lastSearchTerm = "";
-              }}
+              @clear-search=${() => this._resetSearch()}
             ></search-summary>
           `
+        : null}
+      ${this.errorMessage
+        ? html`<d2l-alert type="error">${this.errorMessage}</d2l-alert>`
         : null}
       ${this.loading
         ? html`

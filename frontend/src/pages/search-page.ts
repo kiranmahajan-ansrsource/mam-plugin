@@ -7,6 +7,7 @@ import "@brightspace-ui/core/components/link/link.js";
 import "@brightspace-ui/core/components/button/button.js";
 import "@brightspace-ui/core/components/paging/pager-load-more.js";
 import "../components/pageable-wrapper";
+import "../components/search-summary";
 
 import { getLtik } from "../utils/helper";
 import axios from "axios";
@@ -53,6 +54,10 @@ export class SearchPage extends LitElement {
       display: flex;
       flex-direction: column;
       justify-content: center;
+    }
+
+    d2l-input-search {
+      width: 99%;
     }
   `;
 
@@ -151,26 +156,42 @@ export class SearchPage extends LitElement {
   render() {
     return html`
       <h4 class="search-heading">Search by keyword to find relevant images.</h4>
+
       <d2l-input-search
         label="Search"
         placeholder="e.g. x-ray"
         .value=${this.searchTerm}
         @d2l-input-search-searched=${(e: any) => {
           this.searchTerm = e.detail.value;
-          this._triggerSearch();
+          if (!this.searchTerm.trim()) {
+            this.results = [];
+            this.totalCount = 0;
+            this.page = 1;
+            this.lastSearchTerm = "";
+          } else {
+            this._triggerSearch();
+          }
         }}
         @input=${(e: any) => (this.searchTerm = e.target.value)}
-        @keydown=${(e: KeyboardEvent) =>
-          e.key === "Enter" && this._triggerSearch()}
-        @clear=${() => {
-          this.searchTerm = "";
-          this.results = [];
-          this.totalCount = 0;
-          this.page = 1;
-          this.lastSearchTerm = "";
+        @keydown=${(e: KeyboardEvent) => {
+          if (e.key === "Enter") this._triggerSearch();
         }}
       ></d2l-input-search>
 
+      ${this.lastSearchTerm
+        ? html`
+            <search-summary
+              .totalResults=${this.totalCount}
+              @clear-search=${() => {
+                this.searchTerm = "";
+                this.results = [];
+                this.totalCount = 0;
+                this.page = 1;
+                this.lastSearchTerm = "";
+              }}
+            ></search-summary>
+          `
+        : null}
       ${this.loading
         ? html`
             <div class="spinner-container">

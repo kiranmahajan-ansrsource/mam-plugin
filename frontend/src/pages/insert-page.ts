@@ -110,17 +110,6 @@ export class InsertPage extends LitElement {
       this.title = "";
     }
 
-    if (!this.image.fullImageUrl || !this.image.name) {
-      console.error(
-        "Missing fullImageUrl or name in sessionStorage. Cannot proceed."
-      );
-      console.warn(
-        "Image URL or name is missing. Please go back and select an image again."
-      );
-      this.goBack();
-      return;
-    }
-
     try {
       const response = await axios.get("/oauth/check", {
         withCredentials: true,
@@ -288,10 +277,7 @@ export class InsertPage extends LitElement {
             @click=${this.submitForm}
             ?disabled=${this.isDecorative
               ? false
-              : !this.altText ||
-                this.submitting ||
-                !this.image.fullImageUrl ||
-                !this.image.name}
+              : !this.altText || this.submitting}
           >
             ${this.submitting
               ? html`<d2l-loading-spinner small></d2l-loading-spinner>`

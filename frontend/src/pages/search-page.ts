@@ -2,9 +2,9 @@ import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import "@brightspace-ui/core/components/inputs/input-search.js";
 import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
-import "@brightspace-ui/core/components/alert/alert.js";
-import "@brightspace-ui/core/components/link/link.js";
+import "@brightspace-ui/core/components/alert/alert-toast.js";
 import "@brightspace-ui/core/components/button/button.js";
+import "@brightspace-ui/core/components/link/link.js";
 import "@brightspace-ui/core/components/paging/pager-load-more.js";
 import "../components/pageable-wrapper";
 import "../components/search-summary";
@@ -180,7 +180,9 @@ export class SearchPage extends LitElement {
           `
         : null}
       ${this.errorMessage
-        ? html`<d2l-alert type="error">${this.errorMessage}</d2l-alert>`
+        ? html`<d2l-alert-toast no-auto-close open type="critical"
+            >${this.errorMessage}</d2l-alert-toast
+          >`
         : null}
       ${this.loading
         ? html`

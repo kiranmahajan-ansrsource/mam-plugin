@@ -5,6 +5,7 @@ import "@brightspace-ui/core/components/inputs/input-textarea.js";
 import "@brightspace-ui/core/components/inputs/input-checkbox.js";
 import "@brightspace-ui/core/components/alert/alert-toast.js";
 import "@brightspace-ui/core/components/button/button.js";
+import "@brightspace-ui/core/components/tooltip/tooltip.js";
 import "@brightspace-ui/core/components/breadcrumbs/breadcrumbs.js";
 import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
 import "../components/loader-spinner";
@@ -249,6 +250,7 @@ export class InsertPage extends LitElement {
           </div>
           <div class="form-group">
             <d2l-input-textarea
+              id="tooltip-error"
               label="Alternative Text (Describe your image)"
               .value=${this.altText}
               rows="3"
@@ -257,6 +259,9 @@ export class InsertPage extends LitElement {
               @input=${(e: any) => (this.altText = e.target.value)}
               style="font-size: 1.1em;"
             ></d2l-input-textarea>
+            <d2l-tooltip for="tooltip-error" state="error">
+              Provide alt text or mark image as decorative
+            </d2l-tooltip>
             <d2l-input-checkbox
               class="checkbox-margin"
               .checked=${this.isDecorative}

@@ -17,6 +17,8 @@ export class DetailsPage extends LitElement {
     descriptionListStyles,
     css`
       .container {
+        width: 100%;
+        height: 100%;
         display: flex;
         gap: 2rem;
         margin-top: 1rem;
@@ -24,6 +26,7 @@ export class DetailsPage extends LitElement {
       .preview {
         width: 500px;
         height: 310px;
+        max-width: 40%;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -37,6 +40,9 @@ export class DetailsPage extends LitElement {
         height: auto;
         object-fit: contain;
         object-position: center;
+      }
+      d2l-dl-wrapper {
+        width: 60%;
       }
     `,
   ];

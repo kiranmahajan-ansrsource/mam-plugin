@@ -23,6 +23,17 @@
             JSON.stringify({ subject: "lti.frameResize", height: 400 }),
             "*"
           );
+
+          if (lti && lti.capabilities) {
+            console.log("LTI:", lti);
+            console.log("LTI Capabilities:", lti.capabilities);
+
+            for (const capability of lti.capabilities) {
+              console.log(`LMS Capability: ${capability}`);
+            }
+          } else {
+            console.warn("LTI Capabilities not found in the launch message.");
+          }
         }, 0);
       });
     </script>

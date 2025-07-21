@@ -99,6 +99,7 @@ export class SearchPage extends LitElement {
       createDate: item.CreateDate || "",
     }));
   }
+
   private async _triggerSearch() {
     if (!this.searchTerm.trim()) return;
     this.loading = true;
@@ -117,98 +118,21 @@ export class SearchPage extends LitElement {
     } catch (err) {
       console.error("Search error:", err);
       this.errorMessage = "Something went wrong. Please try again.";
-      this.results = [
-        {
-          id: "fallback1",
-          name: "Placeholder Image 1",
-          thumbnailUrl: "https://placehold.co/600x400?text=Placeholder",
-          fullImageUrl: "https://placehold.co/600x400?text=Placeholder",
+
+      const fallbackImages: ImageItem[] = [];
+      for (let i = 0; i < this.limit; i++) {
+        const id = Math.floor(Math.random() * 1000);
+        fallbackImages.push({
+          id: `picsum-${id}`,
+          name: `Picsum Image ${i + 1}`,
+          thumbnailUrl: `https://picsum.photos/id/${id}/250/150`,
+          fullImageUrl: `https://picsum.photos/id/${id}/600/400`,
           imageWidth: 600,
           imageHeight: 400,
-          createDate: "2023-01-01",
-        },
-        {
-          id: "fallback2",
-          name: "Placeholder Image 2",
-          thumbnailUrl: "https://placehold.co/600x400?text=Placeholder",
-          fullImageUrl: "https://placehold.co/600x400?text=Placeholder",
-          imageWidth: 600,
-          imageHeight: 400,
-          createDate: "2023-01-02",
-        },
-        {
-          id: "fallback3",
-          name: "Placeholder Image 3",
-          thumbnailUrl: "https://placehold.co/600x400?text=Placeholder",
-          fullImageUrl: "https://placehold.co/600x400?text=Placeholder",
-          imageWidth: 600,
-          imageHeight: 400,
-          createDate: "2023-01-03",
-        },
-        {
-          id: "fallback4",
-          name: "Placeholder Image 4",
-          thumbnailUrl: "https://placehold.co/600x400?text=Placeholder",
-          fullImageUrl: "https://placehold.co/600x400?text=Placeholder",
-          imageWidth: 600,
-          imageHeight: 400,
-          createDate: "2023-01-04",
-        },
-        {
-          id: "fallback5",
-          name: "Placeholder Image 5",
-          thumbnailUrl: "https://placehold.co/600x400?text=Placeholder",
-          fullImageUrl: "https://placehold.co/600x400?text=Placeholder",
-          imageWidth: 600,
-          imageHeight: 400,
-          createDate: "2023-01-05",
-        },
-        {
-          id: "fallback6",
-          name: "Placeholder Image 6",
-          thumbnailUrl: "https://placehold.co/600x400?text=Placeholder",
-          fullImageUrl: "https://placehold.co/600x400?text=Placeholder",
-          imageWidth: 600,
-          imageHeight: 400,
-          createDate: "2023-01-06",
-        },
-        {
-          id: "fallback7",
-          name: "Placeholder Image 7",
-          thumbnailUrl: "https://placehold.co/600x400?text=Placeholder",
-          fullImageUrl: "https://placehold.co/600x400?text=Placeholder",
-          imageWidth: 600,
-          imageHeight: 400,
-          createDate: "2023-01-07",
-        },
-        {
-          id: "fallback8",
-          name: "Placeholder Image 8",
-          thumbnailUrl: "https://placehold.co/600x400?text=Placeholder",
-          fullImageUrl: "https://placehold.co/600x400?text=Placeholder",
-          imageWidth: 600,
-          imageHeight: 400,
-          createDate: "2023-01-08",
-        },
-        {
-          id: "fallback9",
-          name: "Placeholder Image 9",
-          thumbnailUrl: "https://placehold.co/600x400?text=Placeholder",
-          fullImageUrl: "https://placehold.co/600x400?text=Placeholder",
-          imageWidth: 600,
-          imageHeight: 400,
-          createDate: "2023-01-09",
-        },
-        {
-          id: "fallback10",
-          name: "Placeholder Image 10",
-          thumbnailUrl: "https://placehold.co/600x400?text=Placeholder",
-          fullImageUrl: "https://placehold.co/600x400?text=Placeholder",
-          imageWidth: 600,
-          imageHeight: 400,
-          createDate: "2023-01-10",
-        },
-      ];
+          createDate: new Date().toISOString().split("T")[0],
+        });
+      }
+      this.results = fallbackImages;
       this.totalCount = this.results.length;
     } finally {
       this.loading = false;

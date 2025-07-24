@@ -55,12 +55,10 @@ lti.onDeepLinking(async (token, req, res) => {
   logDecodedJwt("Deep Linking Request", token, "request");
 
   const userRoles = token.platformContext?.roles || [];
-  console.log(userRoles);
   if (!hasAllowedRole(userRoles)) {
     console.log("Access denied");
     return lti.redirect(res, "/prohibited");
   }
-
   return lti.redirect(res, "/deeplink", { newResource: true });
 });
 

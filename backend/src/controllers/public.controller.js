@@ -16,7 +16,6 @@ const publicInsertController = async (req, res) => {
       return handleError(res, 400, "Missing imageUrl in request body.");
     }
     const decodedImageUrl = decodeURIComponent(imageUrl);
-    console.log(`Decoded Image URL for fetch: ${decodedImageUrl}`);
     if (
       !res.locals.context ||
       !res.locals.context.context ||
@@ -33,7 +32,6 @@ const publicInsertController = async (req, res) => {
     }
     orgUnitId = res.locals.context.context.id;
     const orgId = res.locals.context.context.label;
-    console.log(`Processing /insert for orgUnitId: ${orgUnitId}✅✅✅`);
     const d2lAccessToken = req.cookies.d2lAccessToken;
     if (!d2lAccessToken) {
       console.error(
@@ -55,6 +53,7 @@ const publicInsertController = async (req, res) => {
         "Server configuration error: D2L API Base URL is not set."
       );
     }
+
     // --- Step 1: Create a Temporary Module (Top-Level) ---
     const moduleResponse = await axios.post(
       `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/root/`,
@@ -81,9 +80,7 @@ const publicInsertController = async (req, res) => {
       }
     );
     moduleId = moduleResponse.data.Id;
-    console.log(
-      `Successfully created temporary top-level module with ID: ${moduleId}`
-    );
+
     // --- Step 2: Fetch image as a buffer and define the D2L URL ---
     const { buffer, contentType } = await fetchImageBuffer(decodedImageUrl);
     const fileExt = contentType.split("/").pop();
@@ -91,7 +88,7 @@ const publicInsertController = async (req, res) => {
     baseName = baseName.replace(/[^a-zA-Z0-9-_]/g, "_");
     const fileName = `${baseName}.${fileExt}`;
     const d2lPath = `/content/enforced/${orgUnitId}-${orgId}/${fileName}`;
-    console.log(`Fetched image and will store at D2l path: ${d2lPath}`);
+
     // --- Step 3: Create topic and upload image in a single multipart/mixed request ---
     const boundary = `--------------------------${Date.now().toString(16)}`;
     const topicPayload = {
@@ -138,16 +135,17 @@ const publicInsertController = async (req, res) => {
     );
     topicId = topicResp.data?.TopicId || topicResp.data?.Id;
     const d2lImageUrl = topicResp.data?.Url;
-    console.log(`Successfully created topic with ID: ${topicId}`);
+
     console.log(`Persistent D2L Image URL is: ${d2lImageUrl}`);
 
     // --- Step 4: HTML output and Deep Linking ---
-    let htmlAttrs = `height="auto" width="600px" src="${d2lImageUrl}"`;
+    let htmlAttrs = `height="auto" width="600px" src="${
+      process.env.PLATFORM_URL + "/" + d2lImageUrl
+    }"`;
     const isDecorativeFlag =
       isDecorative === true ||
       (typeof isDecorative === "string" &&
         isDecorative.toLowerCase() === "true");
-    console.log("[DEBUG] isDecorativeFlag computed as:", isDecorativeFlag);
 
     if (isDecorativeFlag) {
       htmlAttrs += ' alt="" role="presentation"';
@@ -208,9 +206,6 @@ const publicInsertController = async (req, res) => {
     if (d2lAccessToken && orgUnitId) {
       if (topicId) {
         try {
-          console.log(
-            `Attempting to delete temporary topic with ID: ${topicId}`
-          );
           await axios.delete(
             `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/modules/${moduleId}/topics/${topicId}`,
             {
@@ -227,9 +222,6 @@ const publicInsertController = async (req, res) => {
       }
       if (moduleId) {
         try {
-          console.log(
-            `Attempting to delete temporary module with ID: ${moduleId}`
-          );
           await axios.delete(
             `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/modules/${moduleId}`,
             {

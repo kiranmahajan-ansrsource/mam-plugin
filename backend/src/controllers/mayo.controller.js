@@ -1,10 +1,10 @@
 const axios = require("axios");
 
 let accessToken = null;
-let tokenExpires = 0;
+let tokenExpiresAt = 0;
 
 const getAccessToken = async () => {
-  if (accessToken && Date.now() < tokenExpires) return accessToken;
+  if (accessToken && Date.now() < tokenExpiresAt) return accessToken;
 
   try {
     const response = await axios.post(
@@ -16,33 +16,32 @@ const getAccessToken = async () => {
       }),
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
-    accessToken = response.data.access_token;
-    tokenExpires = Date.now() + (response.data.expires_in - 60) * 1000;
+    const { access_token, expires_in } = response.data;
+
+    accessToken = access_token;
+    tokenExpiresAt = Date.now() + (expires_in - 60) * 1000;
+
     return accessToken;
   } catch (err) {
     console.error(
-      "[getAccessToken] ERROR:",
-      err && err.stack ? err.stack : err
+      "[getAccessToken] Failed to retrieve Mayo Clinic access token:",
+      err.response?.data || err.message
     );
-    if (err.response) {
-      console.error(
-        "[getAccessToken] Mayo Auth error response:",
-        err.response.data
-      );
-    }
-    throw err;
+    accessToken = null;
+    throw new Error("Could not authenticate with Mayo Clinic API.");
   }
 };
 
 const mayoController = async (req, res) => {
   try {
+    const { query, pagenumber, countperpage } = req.query;
     const accessToken = await getAccessToken();
     const mayoResponse = await axios.get(process.env.MAYO_IMG_SEARCH_URL, {
       headers: { Authorization: `Bearer ${accessToken}` },
       params: {
-        query: req.query.q,
-        pagenumber: req.query.page,
-        countperpage: req.query.limit,
+        query: query,
+        pagenumber: pagenumber,
+        countperpage: countperpage,
         format: "json",
         fields:
           "Path_TR7,Path_TR1,Title,SystemIdentifier,IncludeInheritedKeywords,CreateDate",
@@ -52,9 +51,8 @@ const mayoController = async (req, res) => {
     const total = mayoResponse?.data?.APIResponse?.GlobalInfo?.TotalCount || 0;
     res.json({ results: items, total });
   } catch (err) {
-    console.error("[/api/images] ERROR:", err?.message || err);
-    const status = err.response?.status || 500;
-    res.status(status).json({ error: err.message });
+    console.error("[mayoController] Error:", err.message);
+    res.status(err.response?.status || 500).json({ error: err.message });
   }
 };
 

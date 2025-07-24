@@ -72,7 +72,7 @@ export class SearchPage extends LitElement {
   @state() private errorMessage = "";
   @state() private hasSearched = false;
 
-  private readonly limit = 10;
+  private readonly countperpage = 10;
 
   private _resetSearch() {
     this.searchTerm = "";
@@ -106,7 +106,11 @@ export class SearchPage extends LitElement {
     this.errorMessage = "";
     try {
       const res = await axios.get("/api/images", {
-        params: { q: this.searchTerm, page: 1, limit: this.limit },
+        params: {
+          query: this.searchTerm,
+          pagenumber: 1,
+          countperpage: this.countperpage,
+        },
         headers: { Authorization: `Bearer ${this.ltik}` },
       });
       const items = res.data.results || [];
@@ -120,7 +124,7 @@ export class SearchPage extends LitElement {
       this.errorMessage = "Something went wrong. Please try again.";
 
       const fallbackImages: ImageItem[] = [];
-      for (let i = 0; i < this.limit; i++) {
+      for (let i = 0; i < this.countperpage; i++) {
         const id = Math.floor(Math.random() * 1000);
         fallbackImages.push({
           id: `picsum-${id}`,
@@ -147,7 +151,11 @@ export class SearchPage extends LitElement {
 
     try {
       const res = await axios.get("/api/images", {
-        params: { q: this.lastSearchTerm, page: nextPage, limit: this.limit },
+        params: {
+          query: this.lastSearchTerm,
+          pagenumber: nextPage,
+          countperpage: this.countperpage,
+        },
         headers: { Authorization: `Bearer ${this.ltik}` },
       });
 
@@ -226,7 +234,7 @@ export class SearchPage extends LitElement {
               <d2l-pager-load-more
                 slot="pager"
                 ?has-more=${this.results.length < this.totalCount}
-                .pageSize=${this.limit}
+                .pageSize=${this.countperpage}
                 @d2l-pager-load-more=${async (e: CustomEvent) => {
                   await this.loadMore();
                   e.detail.complete();

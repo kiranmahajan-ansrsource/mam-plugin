@@ -46,7 +46,6 @@ function buildOAuthTokenPayload(code) {
 }
 
 async function fetchImageBuffer(imageUrl) {
-  console.log(`Image Service: Fetching image buffer from: ${imageUrl}`);
   const response = await axios.get(imageUrl, { responseType: "arraybuffer" });
   const contentType = response.headers["content-type"];
   if (!contentType || !contentType.startsWith("image/")) {

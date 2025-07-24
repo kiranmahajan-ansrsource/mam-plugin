@@ -40,7 +40,6 @@ const oauthLoginController = (req, res) => {
       { state, returnTo: returnToUrl },
       { maxAge: 36000 }
     );
-    console.log("OAuth state and returnTo URL stored in signed cookie.");
     const authUrl = buildOAuthAuthUrl(state);
     console.log(`Redirecting to D2L OAuth URL: ${authUrl}`);
     return lti.redirect(res, authUrl);
@@ -83,7 +82,6 @@ const oauthCallbackController = async (req, res) => {
       );
     }
     clearSignedCookie(res, "oauthState");
-    console.log("OAuth state validated and cookie cleared successfully.");
     if (!code) {
       console.error("[OAuth Callback] ERROR: Missing code parameter from D2L.");
       return handleError(res, 400, "Missing code param");
@@ -96,9 +94,9 @@ const oauthCallbackController = async (req, res) => {
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
     const { access_token, refresh_token, expires_in } = tokenRes.data;
-    console.log("Access Token obtained successfully.✅✅✅", access_token);
+    console.log("Access Token obtained successfully.");
 
-    const accessTokenMaxAge = expires_in ? (expires_in - 60) * 1000 : 3600000;
+    const accessTokenMaxAge = (expires_in - 60) * 1000;
 
     res.cookie("d2lAccessToken", access_token, {
       httpOnly: true,

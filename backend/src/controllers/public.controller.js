@@ -136,25 +136,28 @@ const publicInsertController = async (req, res) => {
     topicId = topicResp.data?.TopicId || topicResp.data?.Id;
     const d2lImageUrl = topicResp.data?.Url;
 
-    console.log(`Persistent D2L Image URL is: ${d2lImageUrl}`);
+    console.log(
+      `Persistent D2L complete image URL: ${
+        process.env.PLATFORM_URL + d2lImageUrl
+      }`
+    );
 
     // --- Step 4: HTML output and Deep Linking ---
-    let htmlAttrs = `height="auto" width="600px" src="${
-      process.env.PLATFORM_URL + "/" + d2lImageUrl
-    }"`;
+    let htmlAttrs = `height="auto" width="650px" src="${d2lImageUrl}"`;
     const isDecorativeFlag =
       isDecorative === true ||
       (typeof isDecorative === "string" &&
         isDecorative.toLowerCase() === "true");
 
     if (isDecorativeFlag) {
-      htmlAttrs += ' alt="" role="presentation"';
+      htmlAttrs += 'alt="" role="presentation"';
     } else {
-      htmlAttrs += ` alt="${altText}"`;
+      htmlAttrs += `alt="${altText || ""}"`;
     }
     const finalHtmlFragment = `
     <img ${htmlAttrs}>`;
     console.log("[DEBUG] Final HTML fragment to insert:", finalHtmlFragment);
+
     const items = [
       {
         type: "html",

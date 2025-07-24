@@ -29,11 +29,12 @@ export class InsertPage extends LitElement {
       .horizontal-flex {
         display: flex;
         width: 100%;
-        gap: 1rem;
+        gap: 2rem;
       }
       .preview {
         width: 500px;
         height: 310px;
+        max-width: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -64,6 +65,25 @@ export class InsertPage extends LitElement {
       .checkbox-margin {
         margin-top: 0.5rem;
       }
+
+      d2l-button {
+        --d2l-button-padding-inline-end: 2rem;
+        --d2l-button-padding-inline-start: 2rem;
+      }
+
+      d2l-button button {
+        border-radius: 5px;
+      }
+
+      d2l-button[primary] {
+        --d2l-color-celestine: #0070f2;
+        --d2l-color-celestine-minus-1: #0358b8ff;
+      }
+
+      d2l-button[secondary] {
+        --d2l-color-gypsum: #e0e5ebff;
+        --d2l-color-mica: #d1d5d9;
+      }
     `,
   ];
 
@@ -72,6 +92,7 @@ export class InsertPage extends LitElement {
   @state() private isDecorative: boolean = false;
   @state() private submitting = false;
   @state() private isAuthenticatedUser = false;
+  @state() private errorMessage: string = "";
 
   @state() private image: ImageItem = {
     id: "",
@@ -169,7 +190,9 @@ export class InsertPage extends LitElement {
   }
 
   private async submitForm() {
+    if (this.submitting) return;
     this.submitting = true;
+    this.errorMessage = "";
 
     try {
       const form = document.createElement("form");
@@ -211,9 +234,8 @@ export class InsertPage extends LitElement {
       form.submit();
     } catch (err: any) {
       console.error(err);
-      console.error(
-        "An error occurred during form submission. Please try again."
-      );
+      this.errorMessage =
+        "An error occurred during form submission. Please try again.";
     } finally {
       this.submitting = false;
     }
@@ -253,15 +275,19 @@ export class InsertPage extends LitElement {
               id="tooltip-error"
               label="Alternative Text (Describe your image)"
               .value=${this.altText}
-              rows="3"
+              rows="2"
               max-rows="5"
               ?disabled=${this.isDecorative}
               @input=${(e: any) => (this.altText = e.target.value)}
               style="font-size: 1.1em;"
             ></d2l-input-textarea>
-            <d2l-tooltip for="tooltip-error" state="error">
-              Provide alt text or mark image as decorative
-            </d2l-tooltip>
+
+            ${!this.altText && !this.isDecorative
+              ? html`<d2l-tooltip for="tooltip-error" state="error">
+                  Provide alt text or mark image as decorative
+                </d2l-tooltip>`
+              : ""}
+
             <d2l-input-checkbox
               class="checkbox-margin"
               .checked=${this.isDecorative}
@@ -285,12 +311,14 @@ export class InsertPage extends LitElement {
               ? false
               : !this.altText || this.submitting}
           >
-            ${this.submitting
-              ? html`<d2l-loading-spinner small></d2l-loading-spinner>`
-              : "Insert"}
           </d2l-button>
         </div>
       </div>
+      ${this.errorMessage
+        ? html`<d2l-alert-toast open type="critical"
+            >${this.errorMessage}</d2l-alert-toast
+          >`
+        : null}
     `;
   }
 }

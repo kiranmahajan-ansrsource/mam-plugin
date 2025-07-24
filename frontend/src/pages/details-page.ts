@@ -26,7 +26,7 @@ export class DetailsPage extends LitElement {
       .preview {
         width: 500px;
         height: 310px;
-        max-width: 40%;
+        max-width: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -43,6 +43,24 @@ export class DetailsPage extends LitElement {
       }
       d2l-dl-wrapper {
         width: 60%;
+      }
+      d2l-button {
+        --d2l-button-padding-inline-end: 2rem;
+        --d2l-button-padding-inline-start: 2rem;
+      }
+
+      d2l-button button {
+        border-radius: 5px;
+      }
+
+      d2l-button[primary] {
+        --d2l-color-celestine: #0070f2;
+        --d2l-color-celestine-minus-1: #0358b8ff;
+      }
+
+      d2l-button[secondary] {
+        --d2l-color-gypsum: #e0e5ebff;
+        --d2l-color-mica: #d1d5d9;
       }
     `,
   ];

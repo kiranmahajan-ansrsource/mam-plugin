@@ -6,7 +6,7 @@ export class SearchSummary extends LitElement {
   static styles = css`
     .summary-bar {
       width: 100%;
-      background-color: var(--d2l-color-regolith);
+      background-color: #f9fbff;
       border: 1px solid var(--d2l-color-sylvite);
       font-family: inherit;
       display: flex;

@@ -49,7 +49,7 @@ export class SearchPage extends LitElement {
       object-fit: cover;
     }
     .spinner-container {
-      height: 60vh;
+      height: 65vh;
       width: 100%;
       display: flex;
       flex-direction: column;
@@ -72,7 +72,7 @@ export class SearchPage extends LitElement {
   @state() private errorMessage = "";
   @state() private hasSearched = false;
 
-  private readonly countperpage = 10;
+  private readonly countperpage = 12;
 
   private _resetSearch() {
     this.searchTerm = "";

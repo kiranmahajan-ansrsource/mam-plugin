@@ -311,6 +311,9 @@ export class InsertPage extends LitElement {
               ? false
               : !this.altText || this.submitting}
           >
+            ${this.submitting
+              ? html`<d2l-loading-spinner small></d2l-loading-spinner>`
+              : "Insert"}
           </d2l-button>
         </div>
       </div>

@@ -6,15 +6,65 @@ const {
   hasAllowedRole,
 } = require("../utils/common.utils");
 const { logDecodedJwt } = require("../jwtLogger");
+const ImageCache = require("../model/image-upload-model"); // Add this import
 
 const publicInsertController = async (req, res) => {
   let moduleId, topicId;
   let orgUnitId;
   try {
     const { imageUrl, title, altText, imageId, isDecorative } = req.body;
-    if (!imageUrl) {
-      return handleError(res, 400, "Missing imageUrl in request body.");
+    if (!imageId) {
+      return handleError(res, 400, "Missing imageId in request body.");
     }
+
+    // --- Check MongoDB cache first ---
+    const cached = await ImageCache.findOne({ imageId });
+    if (cached) {
+      // Scenario 1: Image already exists in MongoDB
+      console.log(`Image with ID ${imageId} found in cache.`);
+      
+      const d2lImageUrl = cached.d2lImageUrl;
+      let htmlAttrs = `height="auto" width="650px" src="${d2lImageUrl}"`;
+      const isDecorativeFlag =
+        isDecorative === true ||
+        (typeof isDecorative === "string" &&
+          isDecorative.toLowerCase() === "true");
+
+      if (isDecorativeFlag) {
+        htmlAttrs += 'alt="" role="presentation"';
+      } else {
+        htmlAttrs += `alt="${altText || ""}"`;
+      }
+      const finalHtmlFragment = `
+      <img ${htmlAttrs}>`;
+
+      const items = [
+        {
+          type: "html",
+          html: finalHtmlFragment,
+          title: title,
+          text: title,
+        },
+      ];
+
+      const jwt = await lti.DeepLinking.createDeepLinkingMessage(
+        res.locals.token,
+        items,
+        {
+          message: "Successfully registered resource!",
+        }
+      );
+
+      logDecodedJwt("Deep Linking Response", jwt, "response");
+
+      const formHtml = await lti.DeepLinking.createDeepLinkingForm(
+        res.locals.token,
+        items,
+        { message: "Image inserted successfully into D2L!" }
+      );
+      return formHtml ? res.send(formHtml) : res.sendStatus(500);
+    }
+
     const decodedImageUrl = decodeURIComponent(imageUrl);
     if (
       !res.locals.context ||
@@ -184,6 +234,15 @@ const publicInsertController = async (req, res) => {
       { message: "Image inserted successfully into D2L!" }
     );
     console.log("Deep Link Items Sent.");
+    // After successful upload to D2L, save to MongoDB:
+    await ImageCache.create({
+      imageId,
+      mayoUrl: imageUrl,
+      d2lImageUrl: d2lImageUrl,
+    });
+    console.log(`Image with ID ${imageId} cached in MongoDB.`);
+    
+
     return formHtml ? res.send(formHtml) : res.sendStatus(500);
   } catch (err) {
     console.error(

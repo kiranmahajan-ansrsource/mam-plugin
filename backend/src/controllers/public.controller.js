@@ -7,6 +7,7 @@ const {
 } = require("../utils/common.utils");
 const { logDecodedJwt } = require("../jwtLogger");
 const ImageCache = require("../model/image-upload-model"); // Add this import
+const organizationModel = require("../model/organization-model");
 
 const publicInsertController = async (req, res) => {
   let moduleId, topicId;
@@ -22,7 +23,7 @@ const publicInsertController = async (req, res) => {
     if (cached) {
       // Scenario 1: Image already exists in MongoDB
       console.log(`Image with ID ${imageId} found in cache.`);
-      
+
       const d2lImageUrl = cached.d2lImageUrl;
       let htmlAttrs = `height="auto" width="650px" src="${d2lImageUrl}"`;
       const isDecorativeFlag =
@@ -82,6 +83,12 @@ const publicInsertController = async (req, res) => {
     }
     orgUnitId = res.locals.context.context.id;
     const orgId = res.locals.context.context.label;
+
+    let organization = await organizationModel.findOne({ orgId });
+    if (!organization) {
+      organization = await organizationModel.create({ orgId });
+    }
+
     const d2lAccessToken = req.cookies.d2lAccessToken;
     if (!d2lAccessToken) {
       console.error(
@@ -235,13 +242,23 @@ const publicInsertController = async (req, res) => {
     );
     console.log("Deep Link Items Sent.");
     // After successful upload to D2L, save to MongoDB:
+    // await ImageCache.create({
+    //   imageId,
+    //   mayoUrl: imageUrl,
+    //   d2lImageUrl: d2lImageUrl,
+    // });
+
     await ImageCache.create({
       imageId,
       mayoUrl: imageUrl,
       d2lImageUrl: d2lImageUrl,
+      organization: organization._id,
+      altText: altText ? altText : "",
+      isDecorative: isDecorativeFlag ? isDecorativeFlag : false,
+      title: title ? title : "",
+      keywords: [],
     });
     console.log(`Image with ID ${imageId} cached in MongoDB.`);
-    
 
     return formHtml ? res.send(formHtml) : res.sendStatus(500);
   } catch (err) {

@@ -9,6 +9,22 @@ const {
   buildOAuthTokenPayload,
 } = require("../utils/common.utils");
 
+const refreshAccessToken = async (refreshToken) => {
+  const payload = new URLSearchParams({
+    grant_type: "refresh_token",
+    refresh_token: refreshToken,
+    client_id: process.env.D2L_OAUTH_CLIENT_ID,
+    client_secret: process.env.D2L_OAUTH_CLIENT_SECRET,
+  });
+
+  const tokenRes = await axios.post(
+    process.env.D2L_OAUTH_TOKEN_URL,
+    payload.toString(),
+    { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+  );
+  return tokenRes.data;
+};
+
 const oauthLoginController = (req, res) => {
   try {
     const state = crypto.randomBytes(16).toString("hex");
@@ -79,14 +95,34 @@ const oauthCallbackController = async (req, res) => {
       payload.toString(),
       { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
     );
-    const { access_token } = tokenRes.data;
+    const { access_token, refresh_token, expires_in } = tokenRes.data;
     console.log("Access Token obtained successfully.✅✅✅", access_token);
+
+    const accessTokenMaxAge = expires_in ? (expires_in - 60) * 1000 : 3600000;
+
     res.cookie("d2lAccessToken", access_token, {
       httpOnly: true,
       secure: true,
       sameSite: "None",
-      maxAge: 3600000,
+      maxAge: accessTokenMaxAge,
     });
+
+    if (refresh_token) {
+      res.cookie("d2lRefreshToken", refresh_token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "None",
+        maxAge: 30 * 24 * 60 * 60 * 1000,
+      });
+    }
+
+    res.cookie("d2lTokenExpiry", Date.now() + accessTokenMaxAge, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "None",
+      maxAge: accessTokenMaxAge,
+    });
+
     console.log(`Redirecting to original URL: ${returnToUrl}`);
     return res.redirect(returnToUrl);
   } catch (err) {
@@ -111,8 +147,62 @@ const oauthCallbackController = async (req, res) => {
   }
 };
 
-const oauthCheckController = (req, res) => {
+const oauthCheckController = async (req, res) => {
   const d2lAccessToken = req.cookies.d2lAccessToken;
+  const d2lRefreshToken = req.cookies.d2lRefreshToken;
+  const d2lTokenExpiry = req.cookies.d2lTokenExpiry;
+
+  if (!d2lAccessToken) {
+    return res.json({ authenticated: false });
+  }
+
+  if (d2lTokenExpiry && Date.now() >= parseInt(d2lTokenExpiry)) {
+    if (d2lRefreshToken) {
+      try {
+        const tokenData = await refreshAccessToken(d2lRefreshToken);
+        const { access_token, refresh_token, expires_in } = tokenData;
+
+        const accessTokenMaxAge = expires_in
+          ? (expires_in - 60) * 1000
+          : 3600000;
+
+        res.cookie("d2lAccessToken", access_token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "None",
+          maxAge: accessTokenMaxAge,
+        });
+
+        if (refresh_token) {
+          res.cookie("d2lRefreshToken", refresh_token, {
+            httpOnly: true,
+            secure: true,
+            sameSite: "None",
+            maxAge: 30 * 24 * 60 * 60 * 1000,
+          });
+        }
+
+        res.cookie("d2lTokenExpiry", Date.now() + accessTokenMaxAge, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "None",
+          maxAge: accessTokenMaxAge,
+        });
+
+        return res.json({ authenticated: true, refreshed: true });
+      } catch (error) {
+        res.clearCookie("d2lAccessToken");
+        res.clearCookie("d2lRefreshToken");
+        res.clearCookie("d2lTokenExpiry");
+        return res.json({ authenticated: false, expired: true });
+      }
+    } else {
+      res.clearCookie("d2lAccessToken");
+      res.clearCookie("d2lTokenExpiry");
+      return res.json({ authenticated: false, expired: true });
+    }
+  }
+
   return res.json({ authenticated: !!d2lAccessToken });
 };
 

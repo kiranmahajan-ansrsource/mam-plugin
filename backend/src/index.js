@@ -3,6 +3,7 @@ const path = require("path");
 const lti = require("ltijs").Provider;
 const routes = require("./routes");
 const { logDecodedJwt } = require("./jwtLogger");
+const { hasAllowedRole } = require("./utils/common.utils");
 const isDev = process.env.NODE_ENV !== "production";
 const publicPath = path.join(__dirname, "../public");
 const COOKIE_SECRET = process.env.LTI_KEY;
@@ -42,11 +43,24 @@ lti.whitelist(
 );
 
 lti.onConnect(async (token, req, res) => {
+  const userRoles = token.platformContext?.roles || [];
+
+  if (!hasAllowedRole(userRoles)) {
+    return lti.redirect(res, "/prohibited");
+  }
   return res.sendFile(path.join(publicPath, "index.html"));
 });
 
 lti.onDeepLinking(async (token, req, res) => {
   logDecodedJwt("Deep Linking Request", token, "request");
+
+  const userRoles = token.platformContext?.roles || [];
+  console.log(userRoles);
+  if (!hasAllowedRole(userRoles)) {
+    console.log("Access denied");
+    return lti.redirect(res, "/prohibited");
+  }
+
   return lti.redirect(res, "/deeplink", { newResource: true });
 });
 

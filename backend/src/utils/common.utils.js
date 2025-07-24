@@ -58,6 +58,21 @@ async function fetchImageBuffer(imageUrl) {
   return { buffer: response.data, contentType };
 }
 
+const rolesString = process.env.ALLOWED_ROLES || "";
+
+const ALLOWED_ROLES = rolesString
+  .split(",")
+  .map((role) => role.trim())
+  .filter((role) => role);
+
+function hasAllowedRole(userRoles) {
+  if (!userRoles || userRoles.length === 0) {
+    return false;
+  }
+
+  return userRoles.some((role) => ALLOWED_ROLES.includes(role));
+}
+
 module.exports = {
   setSignedCookie,
   clearSignedCookie,
@@ -65,4 +80,5 @@ module.exports = {
   buildOAuthAuthUrl,
   buildOAuthTokenPayload,
   fetchImageBuffer,
+  hasAllowedRole,
 };

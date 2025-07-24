@@ -1,6 +1,10 @@
 const lti = require("ltijs").Provider;
 const axios = require("axios");
-const { fetchImageBuffer, handleError } = require("../utils/common.utils");
+const {
+  fetchImageBuffer,
+  handleError,
+  hasAllowedRole,
+} = require("../utils/common.utils");
 const { logDecodedJwt } = require("../jwtLogger");
 
 const publicInsertController = async (req, res) => {
@@ -178,7 +182,7 @@ const publicInsertController = async (req, res) => {
       items,
       { message: "Image inserted successfully into D2L!" }
     );
-    console.log("Deep Link Items Sent.", formHtml);
+    console.log("Deep Link Items Sent.");
     return formHtml ? res.send(formHtml) : res.sendStatus(500);
   } catch (err) {
     console.error(
@@ -248,6 +252,24 @@ const publicInsertController = async (req, res) => {
   }
 };
 
+const rolesString = process.env.ALLOWED_ROLES || "";
+
+const ALLOWED_ROLES = rolesString
+  .split(",")
+  .map((role) => role.trim())
+  .filter((role) => role);
+
+const publicRolesController = async (req, res) => {
+  const userRoles = res.locals.context?.roles || [];
+  const isAllowed = hasAllowedRole(userRoles);
+
+  res.json({
+    roles: userRoles,
+    isAllowed: isAllowed,
+    allowedRoles: ALLOWED_ROLES,
+  });
+};
 module.exports = {
   publicInsertController,
+  publicRolesController,
 };

@@ -150,9 +150,9 @@ const publicInsertController = async (req, res) => {
         isDecorative.toLowerCase() === "true");
 
     if (isDecorativeFlag) {
-      htmlAttrs += 'alt="" role="presentation"';
+      htmlAttrs += ' alt="" role="presentation" ';
     } else {
-      htmlAttrs += `alt="${altText || ""}"`;
+      htmlAttrs += ` alt="${altText || ""}" `;
     }
     const finalHtmlFragment = `
     <img ${htmlAttrs}>`;

@@ -197,7 +197,7 @@ export class InsertPage extends LitElement {
     try {
       const form = document.createElement("form");
       form.method = "POST";
-      form.action = `/insert?ltik=${this.ltik}`;
+      form.action = `/insert?ltik=${this.ltik}&searchTerm=${sessionStorage.getItem("searchTerm")}`;
       form.style.display = "none";
 
       const imageUrlInput = document.createElement("input");

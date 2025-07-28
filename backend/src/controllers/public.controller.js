@@ -14,15 +14,39 @@ const publicInsertController = async (req, res) => {
   let orgUnitId;
   try {
     const { imageUrl, title, altText, imageId, isDecorative } = req.body;
+    const { searchTerm } = req.query;
+
     if (!imageId) {
       return handleError(res, 400, "Missing imageId in request body.");
     }
 
     // --- Check MongoDB cache first ---
-    const cached = await ImageCache.findOne({ imageId });
+    console.log(res.locals.context.context.id, "=====================");
+    const findOr = await organizationModel.findOne({
+      orgId: res.locals.context.context.id,
+    });
+
+    const cached = await ImageCache.findOne({
+      imageId,
+      organization: findOr._id,
+    });
+
+    console.log("Cached Image:", cached);
+
     if (cached) {
       // Scenario 1: Image already exists in MongoDB
-      console.log(`Image with ID ${imageId} found in cache.`);
+      console.log(`Image with ID ${imageId} ${findOr?.orgId}found in cache.`);
+      // adding alt text and isDecorative to cached
+      if (searchTerm) {
+        const cleanKeyword = altText.trim().toLowerCase();
+        if (!cached.keywords.includes(cleanKeyword)) {
+          cached.keywords.push(cleanKeyword);
+          await cached.save();
+          console.log(
+            `Added new keyword "${cleanKeyword}" to imageId ${imageId}`
+          );
+        }
+      }
 
       const d2lImageUrl = cached.d2lImageUrl;
       let htmlAttrs = `height="auto" width="650px" src="${d2lImageUrl}"`;
@@ -84,9 +108,13 @@ const publicInsertController = async (req, res) => {
     orgUnitId = res.locals.context.context.id;
     const orgId = res.locals.context.context.label;
 
-    let organization = await organizationModel.findOne({ orgId });
+    let organization = await organizationModel.findOne({ orgId: orgUnitId });
+    console.log("Organization found or created:", organization);
+
     if (!organization) {
-      organization = await organizationModel.create({ orgId });
+      console.log("try");
+
+      organization = await organizationModel.create({ orgUnitId });
     }
 
     const d2lAccessToken = req.cookies.d2lAccessToken;
@@ -247,6 +275,7 @@ const publicInsertController = async (req, res) => {
     //   mayoUrl: imageUrl,
     //   d2lImageUrl: d2lImageUrl,
     // });
+    console.log("Organization ID:", organization._id);
 
     await ImageCache.create({
       imageId,
@@ -256,7 +285,7 @@ const publicInsertController = async (req, res) => {
       altText: altText ? altText : "",
       isDecorative: isDecorativeFlag ? isDecorativeFlag : false,
       title: title ? title : "",
-      keywords: [],
+      keywords: searchTerm.split(",").map((k) => k.trim()),
     });
     console.log(`Image with ID ${imageId} cached in MongoDB.`);
 
@@ -340,7 +369,44 @@ const publicRolesController = async (req, res) => {
     allowedRoles: ALLOWED_ROLES,
   });
 };
+
+//
+
+const searchImagesController = async (req, res) => {
+  const orgId = res.locals.context.context.id;
+  const { query } = req.query;
+  console.log("Search query received:", req?.query);
+  console.log("Searching images for organization:", orgId, "Query:", query);
+
+  if (!query?.trim()) {
+    return res.status(400).json({ error: "Search query is required." });
+  }
+
+  // 1. Find organization document by orgId
+  const organization = await organizationModel.findOne({ orgId });
+  if (!organization) {
+    return res.status(404).json({ error: "Organization not found." });
+  }
+
+  // 2. Prepare search regex (case-insensitive)
+  const searchRegex = new RegExp(query, "i");
+
+  // 3. Search in `title`, `altText`, and `keywords` array only
+  const results = await ImageCache.find({
+    organization: organization._id,
+    $or: [
+      { title: searchRegex },
+      { altText: searchRegex },
+      { keywords: { $in: [searchRegex] } }, // Match any item in array
+    ],
+  });
+
+  res.json(results);
+};
+
+// Add to exports
 module.exports = {
   publicInsertController,
   publicRolesController,
+  searchImagesController, // <-- add this
 };

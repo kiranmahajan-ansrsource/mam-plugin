@@ -6,15 +6,90 @@ const {
   hasAllowedRole,
 } = require("../utils/common.utils");
 const { logDecodedJwt } = require("../jwtLogger");
+const imageModel = require("../model/image.model");
+const organizationModel = require("../model/organization.model");
 
 const publicInsertController = async (req, res) => {
   let moduleId, topicId;
   let orgUnitId;
   try {
     const { imageUrl, title, altText, imageId, isDecorative } = req.body;
-    if (!imageUrl) {
-      return handleError(res, 400, "Missing imageUrl in request body.");
+    const { searchTerm } = req.query;
+
+    if (!imageId) {
+      return handleError(res, 400, "Missing imageId in request body.");
     }
+
+    // --- Check MongoDB cache first ---
+    console.log(res.locals.context.context.id, "=====================");
+    const findOr = await organizationModel.findOne({
+      orgId: res.locals.context.context.id,
+    });
+
+    const cached = await imageModel.findOne({
+      imageId,
+      organization: findOr._id,
+    });
+
+    console.log("Cached Image:", cached);
+
+    if (cached) {
+      // Scenario 1: Image already exists in MongoDB
+      console.log(`Image with ID ${imageId} ${findOr?.orgId}found in cache.`);
+
+      if (searchTerm) {
+        const cleanKeyword = altText.trim().toLowerCase();
+        if (!cached.keywords.includes(cleanKeyword)) {
+          cached.keywords.push(cleanKeyword);
+          await cached.save();
+          console.log(
+            `Added new keyword "${cleanKeyword}" to imageId ${imageId}`
+          );
+        }
+      }
+
+      const d2lImageUrl = cached.d2lImageUrl;
+      let htmlAttrs = `height="auto" width="650px" src="${d2lImageUrl}"`;
+      const isDecorativeFlag =
+        isDecorative === true ||
+        (typeof isDecorative === "string" &&
+          isDecorative.toLowerCase() === "true");
+
+      if (isDecorativeFlag) {
+        htmlAttrs += 'alt="" role="presentation"';
+      } else {
+        htmlAttrs += `alt="${altText || ""}"`;
+      }
+      const finalHtmlFragment = `
+      <img ${htmlAttrs}>`;
+
+      const items = [
+        {
+          type: "html",
+          html: finalHtmlFragment,
+          title: title,
+          text: title,
+        },
+      ];
+
+      const jwt = await lti.DeepLinking.createDeepLinkingMessage(
+        res.locals.token,
+        items,
+        {
+          message: "Successfully registered resource!",
+        }
+      );
+
+      logDecodedJwt("Deep Linking Response", jwt, "response");
+
+      const formHtml = await lti.DeepLinking.createDeepLinkingForm(
+        res.locals.token,
+        items,
+        { message: "Image inserted successfully into D2L!" }
+      );
+      return formHtml ? res.send(formHtml) : res.sendStatus(500);
+    }
+
     const decodedImageUrl = decodeURIComponent(imageUrl);
     if (
       !res.locals.context ||
@@ -32,6 +107,16 @@ const publicInsertController = async (req, res) => {
     }
     orgUnitId = res.locals.context.context.id;
     const orgId = res.locals.context.context.label;
+
+    let organization = await organizationModel.findOne({ orgId: orgUnitId });
+    console.log("Organization found or created:", organization);
+
+    if (!organization) {
+      console.log("try");
+
+      organization = await organizationModel.create({ orgUnitId });
+    }
+
     const d2lAccessToken = req.cookies.d2lAccessToken;
     if (!d2lAccessToken) {
       console.error(
@@ -184,6 +269,26 @@ const publicInsertController = async (req, res) => {
       { message: "Image inserted successfully into D2L!" }
     );
     console.log("Deep Link Items Sent.");
+    // After successful upload to D2L, save to MongoDB:
+    // await imageModel.create({
+    //   imageId,
+    //   mayoUrl: imageUrl,
+    //   d2lImageUrl: d2lImageUrl,
+    // });
+    console.log("Organization ID:", organization._id);
+
+    await imageModel.create({
+      imageId,
+      mayoUrl: imageUrl,
+      d2lImageUrl: d2lImageUrl,
+      organization: organization._id,
+      altText: altText ? altText : "",
+      isDecorative: isDecorativeFlag ? isDecorativeFlag : false,
+      title: title ? title : "",
+      keywords: searchTerm.split(",").map((k) => k.trim()),
+    });
+    console.log(`Image with ID ${imageId} cached in MongoDB.`);
+
     return formHtml ? res.send(formHtml) : res.sendStatus(500);
   } catch (err) {
     console.error(
@@ -264,7 +369,41 @@ const publicRolesController = async (req, res) => {
     allowedRoles: ALLOWED_ROLES,
   });
 };
+
+const publicSearchDBController = async (req, res) => {
+  const orgId = res.locals.context.context.id;
+  const { query } = req.query;
+  console.log("Search query received:", req?.query);
+  console.log("Searching images for organization:", orgId, "Query:", query);
+
+  if (!query?.trim()) {
+    return res.status(400).json({ error: "Search query is required." });
+  }
+
+  // 1. Find organization document by orgId
+  const organization = await organizationModel.findOne({ orgId });
+  if (!organization) {
+    return res.status(404).json({ error: "Organization not found." });
+  }
+
+  // 2. Prepare search regex (case-insensitive)
+  const searchRegex = new RegExp(query, "i");
+
+  // 3. Search in `title`, `altText`, and `keywords` array only
+  const results = await imageModel.find({
+    organization: organization._id,
+    $or: [
+      { title: searchRegex },
+      { altText: searchRegex },
+      { keywords: { $in: [searchRegex] } }, // Match any item in array
+    ],
+  });
+
+  res.json(results);
+};
+
 module.exports = {
   publicInsertController,
   publicRolesController,
+  publicSearchDBController,
 };

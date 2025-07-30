@@ -62,6 +62,7 @@ export class SearchPage extends LitElement {
   `;
 
   @state() private searchTerm = "";
+
   @state() private lastSearchTerm = "";
   @state() private results: ImageItem[] = [];
   @state() private totalCount = 0;
@@ -71,6 +72,7 @@ export class SearchPage extends LitElement {
   @state() private ltik: string | null = null;
   @state() private errorMessage = "";
   @state() private hasSearched = false;
+  @state() private fromFallback = false;
 
   private readonly countperpage = 12;
 
@@ -120,24 +122,11 @@ export class SearchPage extends LitElement {
       this.lastSearchTerm = this.searchTerm;
       this.hasSearched = true;
     } catch (err) {
-      console.error("Search error:", err);
-      this.errorMessage = "Something went wrong. Please try again.";
-
-      const fallbackImages: ImageItem[] = [];
-      for (let i = 0; i < this.countperpage; i++) {
-        const id = Math.floor(Math.random() * 1000);
-        fallbackImages.push({
-          id: `picsum-${id}`,
-          name: `Picsum Image ${i + 1}`,
-          thumbnailUrl: `https://picsum.photos/id/${id}/250/150`,
-          fullImageUrl: `https://picsum.photos/id/${id}/600/400`,
-          imageWidth: 600,
-          imageHeight: 400,
-          createDate: new Date().toISOString().split("T")[0],
-        });
+      // fallbackErrorFunction in case of error
+      const fallbackWorked = await this.fallbackErrorFunction(true);
+      if (!fallbackWorked) {
+        this.errorMessage = "Mayo is down please use managefiles.";
       }
-      this.results = fallbackImages;
-      this.totalCount = this.results.length;
     } finally {
       this.loading = false;
     }
@@ -165,15 +154,62 @@ export class SearchPage extends LitElement {
       this.results = [...this.results, ...newImages];
       this.page = nextPage;
     } catch (err) {
+      // fallbackErrorFunction in case of error
+      const fallbackWorked = await this.fallbackErrorFunction(false);
+      if (!fallbackWorked) {
+        this.errorMessage = "Mayo is down please use managefiles";
+      }
       console.error("Load more error:", err);
-      this.errorMessage = "Failed to load more images.";
+      // this.errorMessage = "Failed to load more images.";
     } finally {
       this.loadingMore = false;
+    }
+  }
+  private async fallbackErrorFunction(reset: boolean): Promise<boolean> {
+    try {
+      const res = await axios.get("/search-db", {
+        params: { query: this.searchTerm },
+        headers: { Authorization: `Bearer ${this.ltik}` },
+      });
+
+      const items = res.data || [];
+      if (!items || items.length === 0) {
+        this.errorMessage = "No images found.";
+        return false;
+      }
+      this.fromFallback = true;
+      const mappedImages = items.map((item: any) => ({
+        id: item.imageId,
+        name: item.title || "Untitled Image",
+        thumbnailUrl: item.mayoUrl,
+        fullImageUrl: item.mayoUrl,
+        imageWidth: 600,
+        imageHeight: 400,
+        altText: item.altText || "",
+        isDecorative: item.isDecorative || false,
+        createDate: item.createdAt?.split("T")[0] || "",
+      }));
+
+      if (reset) {
+        this.results = mappedImages;
+        this.page = 1;
+        this.totalCount = mappedImages.length;
+      } else {
+        this.results = [...this.results, ...mappedImages];
+        this.page += 1;
+      }
+
+      return true;
+    } catch (err) {
+      console.error("Fallback fetch failed:", err);
+      return false;
     }
   }
 
   private _select(image: ImageItem) {
     sessionStorage.setItem("selectedImage", JSON.stringify(image));
+    sessionStorage.setItem("searchTerm", JSON.stringify(this.searchTerm));
+
     Router.go(`/details?ltik=${this.ltik}`);
   }
 
@@ -208,6 +244,11 @@ export class SearchPage extends LitElement {
         ? html`<d2l-alert-toast open type="critical"
             >${this.errorMessage}</d2l-alert-toast
           >`
+        : null}
+      ${this.fromFallback
+        ? html`
+            <h4 class="search-heading">Mayo is down response from database.</h4>
+          `
         : null}
       ${this.loading
         ? html`

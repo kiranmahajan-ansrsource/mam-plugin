@@ -185,7 +185,13 @@ export class SearchPage extends LitElement {
   }
 
   private _select(image: any) {
-    sessionStorage.setItem("selectedImage", JSON.stringify(image));
+    const finalImage = { ...image };
+
+    if ("altText" in finalImage) {
+      delete finalImage.altText;
+    }
+
+    sessionStorage.setItem("selectedImage", JSON.stringify(finalImage));
     sessionStorage.setItem("searchTerm", JSON.stringify(this.searchTerm));
 
     Router.go(`/details?ltik=${this.ltik}`);

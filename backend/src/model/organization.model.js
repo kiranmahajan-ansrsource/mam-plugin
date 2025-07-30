@@ -2,12 +2,11 @@ const mongoose = require("mongoose");
 
 const organizationSchema = new mongoose.Schema(
   {
-    orgId: {
+    organizationId: {
       type: String,
       required: true,
       unique: true,
     },
-    name: String,
   },
   { timestamps: true }
 );

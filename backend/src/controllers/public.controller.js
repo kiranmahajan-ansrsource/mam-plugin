@@ -4,6 +4,7 @@ const {
   fetchImageBuffer,
   handleError,
   hasAllowedRole,
+  unflatten,
 } = require("../utils/common.utils");
 const { logDecodedJwt } = require("../jwtLogger");
 const imageModel = require("../model/image.model");
@@ -17,63 +18,72 @@ const publicInsertController = async (req, res) => {
   console.log(orgLabel, "......orgLabel");
 
   try {
-    const { imageUrl, title, altText, imageId, isDecorative } = req.body;
+    const finalImageDataFlat = req.body;
+    const finalImageData = unflatten(finalImageDataFlat);
+    console.log("finalImageData:", finalImageData);
     const { searchTerm } = req.query;
 
-    if (!imageId) {
-      return handleError(res, 400, "Missing imageId in request body.");
+    if (!finalImageData?.SystemIdentifier) {
+      return handleError(res, 400, "Missing SystemIdentifier in request body.");
     }
+
+    const { SystemIdentifier, altText, isDecorative } = finalImageData;
 
     // --- Check MongoDB cache first ---
     const availableOrgId = await organizationModel.findOne({
-      orgId: orgUnitId,
+      organizationId: orgUnitId,
     });
 
-    const cached = await imageModel.findOne({
-      imageId,
+    const cachedImage = await imageModel.findOne({
+      SystemIdentifier,
       organization: availableOrgId?._id,
     });
 
-    console.log("Cached Image:", cached);
+    console.log("cachedImage Image:", cachedImage);
 
-    if (cached) {
+    const isDecorativeFlag =
+      isDecorative === true ||
+      (typeof isDecorative === "string" &&
+        isDecorative.toLowerCase() === "true");
+
+    if (cachedImage) {
       // Scenario 1: Image already exists in MongoDB
       console.log(
-        `Image with ID ${imageId} ${availableOrgId?.orgId} found in cache.`
+        `Image with SystemIdentifier ${SystemIdentifier} ${availableOrgId?.organizationId} found in cache.`
       );
 
       if (searchTerm) {
-        const cleanKeyword = altText?.trim().toLowerCase();
-        if (!cached.keywords.includes(cleanKeyword)) {
-          cached.keywords.push(cleanKeyword);
-          await cached.save();
+        const cleanKeyword = searchTerm?.trim().toLowerCase();
+        if (!cachedImage.keywords.includes(cleanKeyword)) {
+          cachedImage.keywords.push(cleanKeyword);
+          await cachedImage.save();
           console.log(
-            `Added new keyword "${cleanKeyword}" to imageId ${imageId}`
+            `Added new keyword "${cleanKeyword}" to SystemIdentifier ${SystemIdentifier}`
           );
         }
       }
 
-      const d2lImageUrl = cached?.d2lImageUrl;
+      const d2lImageUrl = cachedImage?.d2lImageUrl;
       let htmlAttrs = `height="auto" width="650px" src="${d2lImageUrl}"`;
-      const isDecorativeFlag =
-        isDecorative === true ||
-        (typeof isDecorative === "string" &&
-          isDecorative.toLowerCase() === "true");
 
       if (isDecorativeFlag) {
-        htmlAttrs += 'alt="" role="presentation"';
+        htmlAttrs += ' alt="" role="presentation"';
       } else {
-        htmlAttrs += `alt="${altText || ""}"`;
+        htmlAttrs += ` alt="${altText || ""}"`;
       }
       const finalHtmlFragment = `
       <img ${htmlAttrs}>`;
+      console.log(
+        "[DEBUG] Final HTML fragment to insert (cached):",
+        finalHtmlFragment
+      );
 
       const items = [
         {
           type: "html",
           html: finalHtmlFragment,
-          title: title,
-          text: title,
+          title: cachedImage?.Title,
+          text: cachedImage?.Title,
         },
       ];
 
@@ -95,7 +105,9 @@ const publicInsertController = async (req, res) => {
       return formHtml ? res.send(formHtml) : res.sendStatus(500);
     }
 
-    const decodedImageUrl = decodeURIComponent(imageUrl);
+    const decodedImageUrl = decodeURIComponent(
+      finalImageData.Path_TR1?.URI || finalImageData.Path_TR7?.URI || ""
+    );
     if (!orgUnitId) {
       console.error(
         "[/insert] ERROR: LTI context or context ID missing. Please launch the tool from D2L."
@@ -107,11 +119,15 @@ const publicInsertController = async (req, res) => {
       );
     }
 
-    let organization = await organizationModel.findOne({ orgId: orgUnitId });
+    let organization = await organizationModel.findOne({
+      organizationId: orgUnitId,
+    });
     console.log("Organization found:", organization);
 
     if (!organization) {
-      organization = await organizationModel?.create({ orgId: orgUnitId });
+      organization = await organizationModel?.create({
+        organizationId: orgUnitId,
+      });
     }
 
     const d2lAccessToken = req.cookies?.d2lAccessToken;
@@ -126,7 +142,7 @@ const publicInsertController = async (req, res) => {
         "D2L Access Token missing. Please complete the OAuth login process first."
       );
     }
-
+    console.log(d2lAccessToken, ".........d2l access_token");
     // --- Step 1: Create a Temporary Module (Top-Level) ---
     const moduleResponse = await axios.post(
       `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/root/`,
@@ -157,7 +173,7 @@ const publicInsertController = async (req, res) => {
     // --- Step 2: Fetch image as a buffer and define the D2L URL ---
     const { buffer, contentType } = await fetchImageBuffer(decodedImageUrl);
     const fileExt = contentType.split("/").pop();
-    let baseName = imageId || `img_${Date.now()}`;
+    let baseName = SystemIdentifier || `img_${Date.now()}`;
     baseName = baseName.replace(/[^a-zA-Z0-9-_]/g, "_");
     const fileName = `${baseName}.${fileExt}`;
     const d2lPath = orgLabel
@@ -210,6 +226,7 @@ const publicInsertController = async (req, res) => {
     );
     topicId = topicResp.data?.TopicId || topicResp.data?.Id;
     const d2lImageUrl = topicResp.data?.Url;
+    const d2lFullImageUrl = process.env.PLATFORM_URL + d2lImageUrl;
 
     console.log(
       `Persistent D2L complete image URL created with topic-${topicId} & module-${moduleId}: ${
@@ -219,10 +236,6 @@ const publicInsertController = async (req, res) => {
 
     // --- Step 4: HTML output and Deep Linking ---
     let htmlAttrs = `height="auto" width="650px" src="${d2lImageUrl}"`;
-    const isDecorativeFlag =
-      isDecorative === true ||
-      (typeof isDecorative === "string" &&
-        isDecorative.toLowerCase() === "true");
 
     if (isDecorativeFlag) {
       htmlAttrs += ' alt="" role="presentation" ';
@@ -237,8 +250,8 @@ const publicInsertController = async (req, res) => {
       {
         type: "html",
         html: finalHtmlFragment,
-        title: title,
-        text: title,
+        title: finalImageData.Title || "",
+        text: finalImageData.Title || "",
       },
     ];
     console.log("Creating Deep Linking Form...");
@@ -262,16 +275,18 @@ const publicInsertController = async (req, res) => {
     console.log("Organization ID:", organization?._id);
 
     await imageModel.create({
-      imageId,
-      mayoUrl: imageUrl,
+      ...finalImageData,
       d2lImageUrl: d2lImageUrl,
+      d2lFullImageUrl: d2lFullImageUrl,
       organization: organization._id,
-      altText: altText ? altText : "",
-      isDecorative: isDecorativeFlag ? isDecorativeFlag : false,
-      title: title ? title : "",
-      keywords: searchTerm.split(",").map((k) => k?.trim()),
+      altText: altText || "",
+      isDecorative: isDecorativeFlag,
+      keywords: (searchTerm || "")
+        .split(",")
+        .map((k) => k?.trim())
+        .filter(Boolean),
     });
-    console.log(`Image with ID ${imageId} cached in MongoDB.`);
+    console.log(`Image with ID ${SystemIdentifier} cached in MongoDB.`);
 
     return formHtml ? res.send(formHtml) : res.sendStatus(500);
   } catch (err) {
@@ -356,17 +371,22 @@ const publicRolesController = async (req, res) => {
 };
 
 const publicSearchDBController = async (req, res) => {
-  const orgId = res.locals.context?.context?.id;
+  const organizationId = res.locals.context?.context?.id;
   const { query } = req.query;
   console.log("Search query received:", req?.query);
-  console.log("Searching images for organization:", orgId, "Query:", query);
+  console.log(
+    "Searching images for organization:",
+    organizationId,
+    "Query:",
+    query
+  );
 
   if (!query?.trim()) {
     return res.status(400).json({ error: "Search query is required." });
   }
 
   // 1. Find organization document by orgId
-  const organization = await organizationModel.findOne({ orgId });
+  const organization = await organizationModel.findOne({ organizationId });
   if (!organization) {
     return res.status(404).json({ error: "Organization not found." });
   }

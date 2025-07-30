@@ -12,7 +12,6 @@ import "../components/search-summary";
 import { getLtik } from "../utils/helper";
 import axios from "axios";
 import { Router } from "@vaadin/router";
-import type { ImageItem } from "../types/image-item";
 
 @customElement("search-page")
 export class SearchPage extends LitElement {
@@ -62,9 +61,8 @@ export class SearchPage extends LitElement {
   `;
 
   @state() private searchTerm = "";
-
   @state() private lastSearchTerm = "";
-  @state() private results: ImageItem[] = [];
+  @state() private results: any[] = [];
   @state() private totalCount = 0;
   @state() private page = 1;
   @state() private loading = false;
@@ -84,28 +82,18 @@ export class SearchPage extends LitElement {
     this.page = 1;
     this.hasSearched = false;
     this.errorMessage = "";
+    this.fromFallback = false;
   }
 
   firstUpdated() {
     this.ltik = getLtik();
   }
 
-  private _mapImageItems(items: any[]): ImageItem[] {
-    return items.map((item: any) => ({
-      id: item.SystemIdentifier,
-      name: item.Title,
-      thumbnailUrl: item.Path_TR7?.URI || "",
-      fullImageUrl: item.Path_TR1?.URI || "",
-      imageWidth: item.Path_TR1?.Width,
-      imageHeight: item.Path_TR1?.Height,
-      createDate: item.CreateDate || "",
-    }));
-  }
-
   private async _triggerSearch() {
     if (!this.searchTerm.trim()) return;
     this.loading = true;
     this.errorMessage = "";
+    this.fromFallback = false;
     try {
       const res = await axios.get("/api/images", {
         params: {
@@ -116,7 +104,7 @@ export class SearchPage extends LitElement {
         headers: { Authorization: `Bearer ${this.ltik}` },
       });
       const items = res.data.results || [];
-      this.results = this._mapImageItems(items);
+      this.results = items;
       this.totalCount = res.data.total || items.length;
       this.page = 1;
       this.lastSearchTerm = this.searchTerm;
@@ -125,7 +113,8 @@ export class SearchPage extends LitElement {
       // fallbackErrorFunction in case of error
       const fallbackWorked = await this.fallbackErrorFunction(true);
       if (!fallbackWorked) {
-        this.errorMessage = "Mayo is down please use managefiles.";
+        this.errorMessage =
+          "Mayo image API is down please insert pre-existing images from course files or organization files";
       }
     } finally {
       this.loading = false;
@@ -149,18 +138,15 @@ export class SearchPage extends LitElement {
       });
 
       const items = res.data.results || [];
-      const newImages = this._mapImageItems(items);
-
-      this.results = [...this.results, ...newImages];
+      this.results = [...this.results, ...items];
       this.page = nextPage;
     } catch (err) {
-      // fallbackErrorFunction in case of error
       const fallbackWorked = await this.fallbackErrorFunction(false);
       if (!fallbackWorked) {
-        this.errorMessage = "Mayo is down please use managefiles";
+        this.errorMessage =
+          "Mayo image API is down please insert pre-existing images from course files or organization files";
       }
       console.error("Load more error:", err);
-      // this.errorMessage = "Failed to load more images.";
     } finally {
       this.loadingMore = false;
     }
@@ -179,15 +165,7 @@ export class SearchPage extends LitElement {
       }
       this.fromFallback = true;
       const mappedImages = items.map((item: any) => ({
-        id: item.imageId,
-        name: item.title || "Untitled Image",
-        thumbnailUrl: item.mayoUrl,
-        fullImageUrl: item.mayoUrl,
-        imageWidth: 600,
-        imageHeight: 400,
-        altText: item.altText || "",
-        isDecorative: item.isDecorative || false,
-        createDate: item.createdAt?.split("T")[0] || "",
+        ...item,
       }));
 
       if (reset) {
@@ -206,7 +184,7 @@ export class SearchPage extends LitElement {
     }
   }
 
-  private _select(image: ImageItem) {
+  private _select(image: any) {
     sessionStorage.setItem("selectedImage", JSON.stringify(image));
     sessionStorage.setItem("searchTerm", JSON.stringify(this.searchTerm));
 
@@ -263,8 +241,8 @@ export class SearchPage extends LitElement {
                   (img) => html`
                     <div class="thumbnail" @click=${() => this._select(img)}>
                       <img
-                        src=${img.thumbnailUrl}
-                        alt=${img.name}
+                        src=${img.Path_TR7?.URI || ""}
+                        alt=${img.Title || ""}
                         crossorigin="anonymous"
                       />
                     </div>

@@ -72,6 +72,30 @@ function hasAllowedRole(userRoles) {
   return userRoles.some((role) => ALLOWED_ROLES.includes(role));
 }
 
+function unflatten(flatObj) {
+  const result = {};
+  for (const flatKey in flatObj) {
+    if (!Object.prototype.hasOwnProperty.call(flatObj, flatKey)) continue;
+
+    const value = flatObj[flatKey];
+    const keys = flatKey.split(".");
+    let curr = result;
+
+    for (let i = 0; i < keys.length; i++) {
+      const key = keys[i];
+      if (i === keys.length - 1) {
+        curr[key] = value;
+      } else {
+        if (!(key in curr)) {
+          curr[key] = {};
+        }
+        curr = curr[key];
+      }
+    }
+  }
+  return result;
+}
+
 module.exports = {
   setSignedCookie,
   clearSignedCookie,
@@ -80,4 +104,5 @@ module.exports = {
   buildOAuthTokenPayload,
   fetchImageBuffer,
   hasAllowedRole,
+  unflatten,
 };

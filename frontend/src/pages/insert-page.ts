@@ -14,7 +14,6 @@ import "@brightspace-ui/core/components/button/button.js";
 import { getLtik } from "../utils/helper";
 import { Router } from "@vaadin/router";
 import axios from "axios";
-import type { ImageItem } from "../types/image-item";
 
 @customElement("insert-page")
 export class InsertPage extends LitElement {
@@ -76,13 +75,13 @@ export class InsertPage extends LitElement {
       }
 
       d2l-button[primary] {
-        --d2l-color-celestine: #0070f2;
-        --d2l-color-celestine-minus-1: #0358b8ff;
+        --d2l-color-celestine: #006fbf;
+        --d2l-color-celestine-minus-1: rgba(5, 84, 173, 1);
       }
 
       d2l-button[secondary] {
-        --d2l-color-gypsum: #e0e5ebff;
-        --d2l-color-mica: #d1d5d9;
+        --d2l-color-gypsum: #e3e9f1;
+        --d2l-color-mica: #d8dee6ff;
       }
     `,
   ];
@@ -94,55 +93,28 @@ export class InsertPage extends LitElement {
   @state() private isAuthenticatedUser = false;
   @state() private errorMessage: string = "";
 
-  @state() private image: ImageItem = {
-    id: "",
-    name: "",
-    thumbnailUrl: "",
-    fullImageUrl: "",
-    imageWidth: 0,
-    imageHeight: 0,
-    createDate: "",
-  };
-  @state() public title: string = "";
+  @state() private image: any = {};
 
   async firstUpdated() {
     this.ltik = getLtik();
     const stored = sessionStorage.getItem("selectedImage");
     if (stored) {
-      const img: ImageItem = JSON.parse(stored);
-      this.image = {
-        id: img.id || "",
-        name: img.name || "",
-        thumbnailUrl: img.thumbnailUrl || "",
-        fullImageUrl: img.fullImageUrl || "",
-        imageWidth: img.imageWidth || 0,
-        imageHeight: img.imageHeight || 0,
-        createDate: img.createDate || "",
-      };
-      this.title = img.name || "";
+      try {
+        this.image = JSON.parse(stored);
+        this.altText = "";
+        this.isDecorative = this.image.isDecorative || false;
+      } catch (e) {
+        console.error("InsertPage: Error parsing selectedImage", e);
+        this.image = {};
+      }
     } else {
-      this.image = {
-        id: "",
-        name: "",
-        thumbnailUrl: "",
-        fullImageUrl: "",
-        imageWidth: 0,
-        imageHeight: 0,
-        createDate: "",
-      };
-      this.title = "";
+      this.image = {};
     }
 
     try {
       const response = await axios.get("/oauth/check", {
         withCredentials: true,
       });
-
-      console.log(
-        "Response from /oauth/check:",
-        response.status,
-        response.data
-      );
 
       if (
         response.status === 200 &&
@@ -194,44 +166,67 @@ export class InsertPage extends LitElement {
     this.submitting = true;
     this.errorMessage = "";
 
+    if (!this.isDecorative && !this.altText.trim()) {
+      this.errorMessage =
+        "Please provide alt text or mark image as decorative.";
+      this.submitting = false;
+      return;
+    }
+
     try {
       const form = document.createElement("form");
       form.method = "POST";
-      form.action = `/insert?ltik=${this.ltik}&searchTerm=${sessionStorage.getItem("searchTerm")}`;
+      form.action = `/insert?ltik=${this.ltik}&searchTerm=${encodeURIComponent(
+        sessionStorage.getItem("searchTerm") || ""
+      )}`;
       form.style.display = "none";
 
-      const imageUrlInput = document.createElement("input");
-      imageUrlInput.name = "imageUrl";
-      imageUrlInput.value = this.image.fullImageUrl;
-      form.appendChild(imageUrlInput);
+      function flattenObject(obj: any, prefix = ""): { [key: string]: any } {
+        const result: { [key: string]: any } = {};
+        for (const key in obj) {
+          if (!obj.hasOwnProperty(key)) continue;
+          const value = obj[key];
+          const newKey = prefix ? `${prefix}.${key}` : key;
+          if (value && typeof value === "object" && !Array.isArray(value)) {
+            Object.assign(result, flattenObject(value, newKey));
+          } else {
+            result[newKey] = value;
+          }
+        }
+        return result;
+      }
+
+      const flatImageData = flattenObject(this.image);
+
+      for (const key in flatImageData) {
+        if (!flatImageData.hasOwnProperty(key)) continue;
+        const input = document.createElement("input");
+        input.type = "hidden";
+        input.name = key;
+        input.value =
+          flatImageData[key] !== undefined && flatImageData[key] !== null
+            ? flatImageData[key]
+            : "";
+        form.appendChild(input);
+      }
 
       const altTextInput = document.createElement("input");
+      altTextInput.type = "hidden";
       altTextInput.name = "altText";
       altTextInput.value = this.altText;
-      altTextInput.disabled = this.isDecorative;
       form.appendChild(altTextInput);
 
       const isDecorativeInput = document.createElement("input");
+      isDecorativeInput.type = "hidden";
       isDecorativeInput.name = "isDecorative";
       isDecorativeInput.value = this.isDecorative ? "true" : "false";
-      isDecorativeInput.type = "hidden";
       form.appendChild(isDecorativeInput);
 
-      const titleInput = document.createElement("input");
-      titleInput.name = "title";
-      titleInput.value = this.title;
-      form.appendChild(titleInput);
-
-      if (this.image.id) {
-        const imageIdInput = document.createElement("input");
-        imageIdInput.name = "imageId";
-        imageIdInput.value = this.image.id;
-        form.appendChild(imageIdInput);
-      }
-
       document.body.appendChild(form);
-      sessionStorage.removeItem("selectedImage");
       form.submit();
+
+      sessionStorage.removeItem("selectedImage");
+      sessionStorage.removeItem("searchTerm");
     } catch (err: any) {
       console.error(err);
       this.errorMessage =
@@ -265,8 +260,8 @@ export class InsertPage extends LitElement {
         <div class="horizontal-flex">
           <div class="preview">
             <img
-              src=${this.image.fullImageUrl}
-              alt=${this.image.name}
+              src=${this.image.Path_TR1?.URI || ""}
+              alt="${this.image.Title || this.image.SystemIdentifier || ""}"
               crossorigin="anonymous"
             />
           </div>
@@ -300,11 +295,14 @@ export class InsertPage extends LitElement {
           </div>
         </div>
         <div class="form-actions">
-          <d2l-button text="Back" @click=${this.goBack} secondary
-            >Back</d2l-button
+          <d2l-button
+            text="Back to Image Details"
+            @click=${this.goBack}
+            secondary
+            >Back to Image Details</d2l-button
           >
           <d2l-button
-            text="Insert"
+            text="Insert Image"
             primary
             @click=${this.submitForm}
             ?disabled=${this.isDecorative
@@ -313,7 +311,7 @@ export class InsertPage extends LitElement {
           >
             ${this.submitting
               ? html`<d2l-loading-spinner small></d2l-loading-spinner>`
-              : "Insert"}
+              : "Insert Image"}
           </d2l-button>
         </div>
       </div>

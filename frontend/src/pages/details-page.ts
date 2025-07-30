@@ -8,7 +8,6 @@ import { descriptionListStyles } from "@brightspace-ui/core/components/descripti
 
 import { getLtik } from "../utils/helper";
 import { Router } from "@vaadin/router";
-import type { ImageItem } from "../types/image-item";
 import "@brightspace-ui/core/components/button/button.js";
 
 @customElement("details-page")
@@ -54,27 +53,19 @@ export class DetailsPage extends LitElement {
       }
 
       d2l-button[primary] {
-        --d2l-color-celestine: #0070f2;
-        --d2l-color-celestine-minus-1: #0358b8ff;
+        --d2l-color-celestine: #006fbf;
+        --d2l-color-celestine-minus-1: rgba(5, 84, 173, 1);
       }
 
       d2l-button[secondary] {
-        --d2l-color-gypsum: #e0e5ebff;
-        --d2l-color-mica: #d1d5d9;
+        --d2l-color-gypsum: #e3e9f1;
+        --d2l-color-mica: #d8dee6ff;
       }
     `,
   ];
 
-  @state() private image: ImageItem = {
-    id: "",
-    name: "",
-    thumbnailUrl: "",
-    fullImageUrl: "",
-    imageWidth: 0,
-    imageHeight: 0,
-    createDate: "",
-  };
-  @state() private isImageLoading: boolean = true;
+  @state() private image: any = {};
+  @state() private isImageLoading = true;
 
   private ltik: string = "";
 
@@ -83,30 +74,14 @@ export class DetailsPage extends LitElement {
     const stored = sessionStorage.getItem("selectedImage");
     if (stored) {
       try {
-        const img: ImageItem = JSON.parse(stored);
-        this.image = {
-          id: img.id || "",
-          name: img.name || "",
-          thumbnailUrl: img.thumbnailUrl || "",
-          fullImageUrl: img.fullImageUrl || "",
-          imageWidth: img.imageWidth || 0,
-          imageHeight: img.imageHeight || 0,
-          createDate: img.createDate || "",
-        };
+        this.image = JSON.parse(stored);
       } catch (e) {
         console.error("DetailsPage: Error parsing selectedImage", e);
+        this.image = {};
       }
     } else {
+      this.image = {};
       console.warn("DetailsPage: No selectedImage found in sessionStorage");
-      this.image = {
-        id: "",
-        name: "",
-        thumbnailUrl: "",
-        fullImageUrl: "",
-        imageWidth: 0,
-        imageHeight: 0,
-        createDate: "",
-      };
     }
   }
 
@@ -134,8 +109,8 @@ export class DetailsPage extends LitElement {
             ? html`<loader-spinner></loader-spinner>`
             : null}
           <img
-            src=${this.image.fullImageUrl}
-            alt="${this.image.name || this.image.id}"
+            src=${this.image.Path_TR1?.URI || ""}
+            alt="${this.image.Title || this.image.SystemIdentifier || ""}"
             crossorigin="anonymous"
             style="display:${this.isImageLoading ? "none" : "block"};"
             @load=${() => (this.isImageLoading = false)}
@@ -144,33 +119,56 @@ export class DetailsPage extends LitElement {
         </div>
         <d2l-dl-wrapper>
           <dl>
-            <dt>Title</dt>
-            <dd>${this.image.name}</dd>
-            <dt>Unique Identifier</dt>
-            <dd>${this.image.id}</dd>
-            <dt>Content Type</dt>
-            <dd>Image</dd>
-            <dt>Creation Date</dt>
-            <dd>${this.image.createDate || "-"}</dd>
-            <dt>Image Size</dt>
-            <dd>
-              ${this.image.imageWidth && this.image.imageHeight
-                ? `${this.image.imageWidth} x ${this.image.imageHeight}`
-                : "-"}
-            </dd>
+            ${this.image.Title
+              ? html`<dt>Title</dt>
+                  <dd>${this.image.Title}</dd>`
+              : null}
+            ${this.image.SystemIdentifier
+              ? html`<dt>Unique Identifier</dt>
+                  <dd>${this.image.SystemIdentifier}</dd>`
+              : null}
+            ${this.image.mimetype
+              ? html`<dt>Content Type</dt>
+                  <dd>${this.image.mimetype}</dd>`
+              : null}
+            ${this.image.DocSubType
+              ? html`<dt>Collection</dt>
+                  <dd>${this.image.DocSubType}</dd>`
+              : null}
+            ${this.image.CreateDate
+              ? html`<dt>Creation Date</dt>
+                  <dd>${this.image.CreateDate}</dd>`
+              : null}
+            ${this.image.Path_TR1?.Width && this.image.Path_TR1?.Height
+              ? html`<dt>Image Size</dt>
+                  <dd>
+                    ${this.image.Path_TR1.Width} x ${this.image.Path_TR1.Height}
+                  </dd>`
+              : null}
+            ${this.image.UsageDescription
+              ? html`<dt>Usage Notes</dt>
+                  <dd>${this.image.UsageDescription}</dd>`
+              : null}
+            ${this.image.Keyword
+              ? html`<dt>Keyword</dt>
+                  <dd>${this.image.Keyword}</dd>`
+              : null}
           </dl>
         </d2l-dl-wrapper>
       </div>
       <div style="margin-top: 1rem;">
-        <d2l-button text="Back" @click=${this.goBack} secondary
-          >Back</d2l-button
+        <d2l-button
+          text="Back to Search Results"
+          @click=${this.goBack}
+          secondary
+          >Back to Search Results</d2l-button
         >
         <d2l-button
-          text="Next"
+          text="Use this Image"
           @click=${this.goNext}
           primary
           style="margin-left: 1rem;"
-          >Next</d2l-button
+          >Use this Image</d2l-button
         >
       </div>
     `;

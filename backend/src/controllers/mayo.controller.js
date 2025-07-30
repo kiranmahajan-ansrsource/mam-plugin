@@ -44,7 +44,7 @@ const mayoController = async (req, res) => {
         countperpage: countperpage,
         format: "json",
         fields:
-          "Path_TR7,Path_TR1,Title,SystemIdentifier,IncludeInheritedKeywords,CreateDate",
+          "SystemIdentifier,Title,Path_TR7,Path_TR1,CreateDate,EditDate,MediaType,DocSubType,mimetype,MediaNumber,Caption,Directory,UsageDescription,Keyword",
       },
     });
     const items = mayoResponse?.data?.APIResponse?.Items || [];

@@ -11,7 +11,11 @@ const organizationModel = require("../model/organization.model");
 
 const publicInsertController = async (req, res) => {
   let moduleId, topicId;
-  let orgUnitId;
+  const orgUnitId = res.locals.context.context?.id;
+  const orgLabel = res.locals.context.context?.label;
+  console.log(orgUnitId, "......orgUnitId");
+  console.log(orgLabel, "......orgLabel");
+
   try {
     const { imageUrl, title, altText, imageId, isDecorative } = req.body;
     const { searchTerm } = req.query;
@@ -21,24 +25,25 @@ const publicInsertController = async (req, res) => {
     }
 
     // --- Check MongoDB cache first ---
-    console.log(res.locals.context.context.id, "=====================");
-    const findOr = await organizationModel.findOne({
-      orgId: res.locals.context.context.id,
+    const availableOrgId = await organizationModel.findOne({
+      orgId: orgUnitId,
     });
 
     const cached = await imageModel.findOne({
       imageId,
-      organization: findOr._id,
+      organization: availableOrgId?._id,
     });
 
     console.log("Cached Image:", cached);
 
     if (cached) {
       // Scenario 1: Image already exists in MongoDB
-      console.log(`Image with ID ${imageId} ${findOr?.orgId}found in cache.`);
+      console.log(
+        `Image with ID ${imageId} ${availableOrgId?.orgId} found in cache.`
+      );
 
       if (searchTerm) {
-        const cleanKeyword = altText.trim().toLowerCase();
+        const cleanKeyword = altText?.trim().toLowerCase();
         if (!cached.keywords.includes(cleanKeyword)) {
           cached.keywords.push(cleanKeyword);
           await cached.save();
@@ -48,7 +53,7 @@ const publicInsertController = async (req, res) => {
         }
       }
 
-      const d2lImageUrl = cached.d2lImageUrl;
+      const d2lImageUrl = cached?.d2lImageUrl;
       let htmlAttrs = `height="auto" width="650px" src="${d2lImageUrl}"`;
       const isDecorativeFlag =
         isDecorative === true ||
@@ -91,11 +96,7 @@ const publicInsertController = async (req, res) => {
     }
 
     const decodedImageUrl = decodeURIComponent(imageUrl);
-    if (
-      !res.locals.context ||
-      !res.locals.context.context ||
-      !res.locals.context.context.id
-    ) {
+    if (!orgUnitId) {
       console.error(
         "[/insert] ERROR: LTI context or context ID missing. Please launch the tool from D2L."
       );
@@ -105,19 +106,16 @@ const publicInsertController = async (req, res) => {
         "LTI context missing. Please launch the tool from D2L."
       );
     }
-    orgUnitId = res.locals.context.context.id;
-    const orgId = res.locals.context.context.label;
 
     let organization = await organizationModel.findOne({ orgId: orgUnitId });
-    console.log("Organization found or created:", organization);
+    console.log("Organization found:", organization);
 
     if (!organization) {
-      console.log("try");
-
-      organization = await organizationModel.create({ orgUnitId });
+      organization = await organizationModel?.create({ orgId: orgUnitId });
     }
 
-    const d2lAccessToken = req.cookies.d2lAccessToken;
+    const d2lAccessToken = req.cookies?.d2lAccessToken;
+
     if (!d2lAccessToken) {
       console.error(
         "D2L Access Token not found in cookies. User needs to re-authenticate via OAuth."
@@ -126,16 +124,6 @@ const publicInsertController = async (req, res) => {
         res,
         401,
         "D2L Access Token missing. Please complete the OAuth login process first."
-      );
-    }
-    if (!process.env.D2L_API_BASE_URL) {
-      console.error(
-        "Missing D2L_API_BASE_URL environment variable. Cannot make D2L API calls."
-      );
-      return handleError(
-        res,
-        500,
-        "Server configuration error: D2L API Base URL is not set."
       );
     }
 
@@ -172,7 +160,9 @@ const publicInsertController = async (req, res) => {
     let baseName = imageId || `img_${Date.now()}`;
     baseName = baseName.replace(/[^a-zA-Z0-9-_]/g, "_");
     const fileName = `${baseName}.${fileExt}`;
-    const d2lPath = `/content/enforced/${orgUnitId}-${orgId}/${fileName}`;
+    const d2lPath = orgLabel
+      ? `/content/enforced/${orgUnitId}-${orgLabel}/${fileName}`
+      : `/content/enforced/${orgUnitId}/${fileName}`;
 
     // --- Step 3: Create topic and upload image in a single multipart/mixed request ---
     const boundary = `--------------------------${Date.now().toString(16)}`;
@@ -222,7 +212,7 @@ const publicInsertController = async (req, res) => {
     const d2lImageUrl = topicResp.data?.Url;
 
     console.log(
-      `Persistent D2L complete image URL: ${
+      `Persistent D2L complete image URL created with topic-${topicId} & module-${moduleId}: ${
         process.env.PLATFORM_URL + d2lImageUrl
       }`
     );
@@ -269,13 +259,7 @@ const publicInsertController = async (req, res) => {
       { message: "Image inserted successfully into D2L!" }
     );
     console.log("Deep Link Items Sent.");
-    // After successful upload to D2L, save to MongoDB:
-    // await imageModel.create({
-    //   imageId,
-    //   mayoUrl: imageUrl,
-    //   d2lImageUrl: d2lImageUrl,
-    // });
-    console.log("Organization ID:", organization._id);
+    console.log("Organization ID:", organization?._id);
 
     await imageModel.create({
       imageId,
@@ -285,7 +269,7 @@ const publicInsertController = async (req, res) => {
       altText: altText ? altText : "",
       isDecorative: isDecorativeFlag ? isDecorativeFlag : false,
       title: title ? title : "",
-      keywords: searchTerm.split(",").map((k) => k.trim()),
+      keywords: searchTerm.split(",").map((k) => k?.trim()),
     });
     console.log(`Image with ID ${imageId} cached in MongoDB.`);
 
@@ -315,7 +299,8 @@ const publicInsertController = async (req, res) => {
       if (topicId) {
         try {
           await axios.delete(
-            `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/modules/${moduleId}/topics/${topicId}`,
+            `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/topics/${topicId}`,
+
             {
               headers: { Authorization: `Bearer ${d2lAccessToken}` },
             }
@@ -371,7 +356,7 @@ const publicRolesController = async (req, res) => {
 };
 
 const publicSearchDBController = async (req, res) => {
-  const orgId = res.locals.context.context.id;
+  const orgId = res.locals.context?.context?.id;
   const { query } = req.query;
   console.log("Search query received:", req?.query);
   console.log("Searching images for organization:", orgId, "Query:", query);
@@ -395,7 +380,7 @@ const publicSearchDBController = async (req, res) => {
     $or: [
       { title: searchRegex },
       { altText: searchRegex },
-      { keywords: { $in: [searchRegex] } }, // Match any item in array
+      { keywords: { $in: [searchRegex] } },
     ],
   });
 

@@ -19,8 +19,6 @@ const getAccessToken = async () => {
     const { access_token, expires_in } = response.data;
 
     accessToken = access_token;
-    console.log(accessToken);
-    
     tokenExpiresAt = Date.now() + (expires_in - 60) * 1000;
 
     return accessToken;
@@ -39,7 +37,7 @@ const mayoController = async (req, res) => {
     const { query, pagenumber, countperpage } = req.query;
     const accessToken = await getAccessToken();
     const mayoResponse = await axios.get(process.env.MAYO_IMG_SEARCH_URL, {
-      headers: { Authorization: `Bearer ${accessToken}asd` },
+      headers: { Authorization: `Bearer ${accessToken}` },
       params: {
         query: query,
         pagenumber: pagenumber,

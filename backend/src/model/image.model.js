@@ -35,4 +35,4 @@ const imageSchema = new mongoose.Schema({
   keywords: [String],
 });
 
-module.exports = mongoose.model("ImageModel", imageSchema);
+module.exports = mongoose.model("Image", imageSchema);

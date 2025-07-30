@@ -41,7 +41,7 @@ const oauthLoginController = (req, res) => {
       { maxAge: 36000 }
     );
     const authUrl = buildOAuthAuthUrl(state);
-    console.log(`Redirecting to D2L OAuth URL: ${authUrl}`);
+    // console.log(`Redirecting to D2L OAuth URL: ${authUrl}`);
     return lti.redirect(res, authUrl);
   } catch (error) {
     console.error("[/oauth/login] Uncaught error:", error.message || error);
@@ -121,7 +121,7 @@ const oauthCallbackController = async (req, res) => {
       maxAge: accessTokenMaxAge,
     });
 
-    console.log(`Redirecting to original URL: ${returnToUrl}`);
+    // console.log(`Redirecting to original URL: ${returnToUrl}`);
     return res.redirect(returnToUrl);
   } catch (err) {
     console.error(

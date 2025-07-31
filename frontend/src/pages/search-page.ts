@@ -109,6 +109,10 @@ export class SearchPage extends LitElement {
       this.page = 1;
       this.lastSearchTerm = this.searchTerm;
       this.hasSearched = true;
+      if (items.length === 0) {
+        this.errorMessage =
+          "No images found. Please try a different search term.";
+      }
     } catch (err) {
       // fallbackErrorFunction in case of error
       const fallbackWorked = await this.fallbackErrorFunction(true);
@@ -161,6 +165,9 @@ export class SearchPage extends LitElement {
       const items = res.data || [];
       if (!items || items.length === 0) {
         this.results = [];
+        this.totalCount = 0;
+        this.page = 1;
+        this.lastSearchTerm = this.searchTerm;
         this.errorMessage =
           "Mayo image API is down please insert pre-existing images from course files or organization files";
         this.hasSearched = true;

@@ -142,7 +142,7 @@ const publicInsertController = async (req, res) => {
         "D2L Access Token missing. Please complete the OAuth login process first."
       );
     }
-    console.log(d2lAccessToken, ".........d2l access_token");
+    // console.log(d2lAccessToken, ".........d2l access_token");
     // --- Step 1: Create a Temporary Module (Top-Level) ---
     const moduleResponse = await axios.post(
       `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/root/`,

@@ -160,7 +160,10 @@ export class SearchPage extends LitElement {
 
       const items = res.data || [];
       if (!items || items.length === 0) {
-        this.errorMessage = "No images found.";
+        this.results = [];
+        this.errorMessage =
+          "Mayo image API is down please insert pre-existing images from course files or organization files";
+        this.hasSearched = true;
         return false;
       }
       this.fromFallback = true;
@@ -176,7 +179,9 @@ export class SearchPage extends LitElement {
         this.results = [...this.results, ...mappedImages];
         this.page += 1;
       }
-
+      this.errorMessage =
+        "Mayo API is down, showing results from your organization";
+      this.hasSearched = true;
       return true;
     } catch (err) {
       console.error("Fallback fetch failed:", err);
@@ -230,9 +235,9 @@ export class SearchPage extends LitElement {
           >`
         : null}
       ${this.fromFallback
-        ? html`
-            <h4 class="search-heading">Mayo is down response from database.</h4>
-          `
+        ? html`<d2l-alert-toast open type="warning"
+            >${this.errorMessage}</d2l-alert-toast
+          >`
         : null}
       ${this.loading
         ? html`

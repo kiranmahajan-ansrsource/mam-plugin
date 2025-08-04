@@ -74,6 +74,20 @@ export class SearchPage extends LitElement {
 
   private readonly countperpage = 12;
 
+  // Debounce timeout for search input
+
+private searchDebounceTimeout: any = null;
+private _onSearchInput(e: any) {
+  this.searchTerm = e.target.value;
+  clearTimeout(this.searchDebounceTimeout);
+  this.searchDebounceTimeout = setTimeout(() => {
+    if (!this.searchTerm.trim()) {
+      this._resetSearch();
+    } else {
+      this._triggerSearch();
+    }
+  }, 400);
+}
   private _resetSearch() {
     this.searchTerm = "";
     this.lastSearchTerm = "";
@@ -225,7 +239,7 @@ export class SearchPage extends LitElement {
             this._triggerSearch();
           }
         }}
-        @input=${(e: any) => (this.searchTerm = e.target.value)}
+        @input=${(e: any) => this._onSearchInput(e)}
       ></d2l-input-search>
 
       ${this.hasSearched

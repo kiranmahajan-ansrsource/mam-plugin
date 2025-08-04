@@ -35,6 +35,9 @@ const getAccessToken = async () => {
 const mayoController = async (req, res) => {
   try {
     const { query, pagenumber, countperpage } = req.query;
+    if (!query) return res.status(400).json({ error: "Missing query parameter" });
+    pagenumber = parseInt(pagenumber) || 1;
+    countperpage = parseInt(countperpage) || 10;
     const accessToken = await getAccessToken();
     const mayoResponse = await axios.get(process.env.MAYO_IMG_SEARCH_URL, {
       headers: { Authorization: `Bearer ${accessToken}` },

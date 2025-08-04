@@ -54,6 +54,10 @@ const publicInsertController = async (req, res) => {
 
       if (searchTerm) {
         const cleanKeyword = searchTerm?.trim().toLowerCase();
+
+        if (!Array.isArray(cachedImage.keywords)) {
+          cachedImage.keywords = [];
+        }
         if (!cachedImage.keywords.includes(cleanKeyword)) {
           cachedImage.keywords.push(cleanKeyword);
           await cachedImage.save();
@@ -119,16 +123,12 @@ const publicInsertController = async (req, res) => {
       );
     }
 
-    let organization = await organizationModel.findOne({
-      organizationId: orgUnitId,
-    });
+    let organization = await organizationModel.findOneAndUpdate(
+      { organizationId: orgUnitId },
+      { organizationId: orgUnitId },
+      { new: true, upsert: true }
+    );
     console.log("Organization found:", organization);
-
-    if (!organization) {
-      organization = await organizationModel?.create({
-        organizationId: orgUnitId,
-      });
-    }
 
     const d2lAccessToken = req.cookies?.d2lAccessToken;
 
@@ -398,7 +398,7 @@ const publicSearchDBController = async (req, res) => {
   const results = await imageModel.find({
     organization: organization._id,
     $or: [
-      { title: searchRegex },
+      { Title: searchRegex },
       { altText: searchRegex },
       { keywords: { $in: [searchRegex] } },
     ],

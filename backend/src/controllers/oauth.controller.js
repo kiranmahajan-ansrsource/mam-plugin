@@ -10,21 +10,28 @@ const {
 } = require("../utils/common.utils");
 
 const refreshAccessToken = async (refreshToken) => {
-  const payload = new URLSearchParams({
-    grant_type: "refresh_token",
-    refresh_token: refreshToken,
-    client_id: process.env.D2L_OAUTH_CLIENT_ID,
-    client_secret: process.env.D2L_OAUTH_CLIENT_SECRET,
-  });
+  try {
+    const payload = new URLSearchParams({
+      grant_type: "refresh_token",
+      refresh_token: refreshToken,
+      client_id: process.env.D2L_OAUTH_CLIENT_ID,
+      client_secret: process.env.D2L_OAUTH_CLIENT_SECRET,
+    });
 
-  const tokenRes = await axios.post(
-    process.env.D2L_OAUTH_TOKEN_URL,
-    payload.toString(),
-    { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-  );
-  return tokenRes.data;
+    const tokenRes = await axios.post(
+      process.env.D2L_OAUTH_TOKEN_URL,
+      payload.toString(),
+      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+    );
+    return tokenRes.data;
+  } catch (err) {
+    throw new Error(
+      err?.response?.data?.error_description ||
+      err?.message ||
+      "Failed to refresh access token"
+    );
+  }
 };
-
 const oauthLoginController = (req, res) => {
   try {
     const state = crypto.randomBytes(16).toString("hex");

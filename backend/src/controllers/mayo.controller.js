@@ -1,41 +1,29 @@
 const axios = require("axios");
+const { getUserId, getOrUpdateToken } = require("../utils/common.utils");
 
-let accessToken = null;
-let tokenExpiresAt = 0;
-
-const getAccessToken = async () => {
-  if (accessToken && Date.now() < tokenExpiresAt) return accessToken;
-
-  try {
-    const response = await axios.post(
-      process.env.MAYO_AUTH_URL,
-      new URLSearchParams({
-        grant_type: "client_credentials",
-        client_id: process.env.MAYO_CLIENT_ID,
-        client_secret: process.env.MAYO_CLIENT_SECRET,
-      }),
-      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-    );
-    const { access_token, expires_in } = response.data;
-
-    accessToken = access_token;
-    tokenExpiresAt = Date.now() + (expires_in - 60) * 1000;
-
-    return accessToken;
-  } catch (err) {
-    console.error(
-      "[getAccessToken] Failed to retrieve Mayo Clinic access token:",
-      err.response?.data || err.message
-    );
-    accessToken = null;
-    throw new Error("Could not authenticate with Mayo Clinic API.");
-  }
-};
+async function getNewMayoToken() {
+  const response = await axios.post(
+    process.env.MAYO_AUTH_URL,
+    new URLSearchParams({
+      grant_type: "client_credentials",
+      client_id: process.env.MAYO_CLIENT_ID,
+      client_secret: process.env.MAYO_CLIENT_SECRET,
+    }),
+    { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
+  );
+  const { access_token, expires_in } = response.data;
+  return { access_token, expires_in };
+}
 
 const mayoController = async (req, res) => {
   try {
     const { query, pagenumber, countperpage } = req.query;
-    const accessToken = await getAccessToken();
+    const userId = getUserId(req, res);
+    const accessToken = await getOrUpdateToken({
+      userId,
+      provider: "mayo",
+      getNewTokenFn: getNewMayoToken,
+    });
     const mayoResponse = await axios.get(process.env.MAYO_IMG_SEARCH_URL, {
       headers: { Authorization: `Bearer ${accessToken}` },
       params: {

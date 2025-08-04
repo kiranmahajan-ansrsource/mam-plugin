@@ -3,7 +3,7 @@ const path = require("path");
 const lti = require("ltijs").Provider;
 const routes = require("./routes");
 const { logDecodedJwt } = require("./jwtLogger");
-const { hasAllowedRole } = require("./utils/common.utils");
+const { hasAllowedRole, setSignedCookie } = require("./utils/common.utils");
 const isDev = process.env.NODE_ENV !== "production";
 const publicPath = path.join(__dirname, "../public");
 const COOKIE_SECRET = process.env.LTI_KEY;
@@ -44,7 +44,12 @@ lti.whitelist(
 
 lti.onConnect(async (token, req, res) => {
   const userRoles = token.platformContext?.roles || [];
-
+  
+  if (!req.signedCookies?.ltiUserId && token.user) {
+    setSignedCookie(res, "ltiUserId", token.user, {
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+  }
   if (!hasAllowedRole(userRoles)) {
     return lti.redirect(res, "/prohibited");
   }
@@ -53,7 +58,11 @@ lti.onConnect(async (token, req, res) => {
 
 lti.onDeepLinking(async (token, req, res) => {
   logDecodedJwt("Deep Linking Request", token, "request");
-
+  if (!req.signedCookies?.ltiUserId && token.user) {
+    setSignedCookie(res, "ltiUserId", token.user, {
+      maxAge: 24 * 60 * 60 * 1000,
+    });
+  }
   const userRoles = token.platformContext?.roles || [];
   if (!hasAllowedRole(userRoles)) {
     console.log("Access denied");

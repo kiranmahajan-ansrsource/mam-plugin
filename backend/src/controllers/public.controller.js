@@ -5,6 +5,8 @@ const {
   handleError,
   hasAllowedRole,
   unflatten,
+  getUserId,
+  getValidD2LAccessToken,
 } = require("../utils/common.utils");
 const { logDecodedJwt } = require("../jwtLogger");
 const imageModel = require("../model/image.model");
@@ -14,8 +16,19 @@ const publicInsertController = async (req, res) => {
   let moduleId, topicId;
   const orgUnitId = res.locals.context.context?.id;
   const orgLabel = res.locals.context.context?.label;
-  console.log(orgUnitId, "......orgUnitId");
-  console.log(orgLabel, "......orgLabel");
+  
+  const userId = getUserId(req, res);
+  const d2lAccessToken = await getValidD2LAccessToken(userId);
+  if (!d2lAccessToken) {
+    console.error(
+      "D2L Access Token not found or refresh failed. User needs to re-authenticate via OAuth."
+    );
+    return handleError(
+      res,
+      401,
+      "D2L Access Token missing or expired. Please complete the OAuth login process first."
+    );
+  }
 
   try {
     const finalImageDataFlat = req.body;
@@ -130,19 +143,6 @@ const publicInsertController = async (req, res) => {
       });
     }
 
-    const d2lAccessToken = req.cookies?.d2lAccessToken;
-
-    if (!d2lAccessToken) {
-      console.error(
-        "D2L Access Token not found in cookies. User needs to re-authenticate via OAuth."
-      );
-      return handleError(
-        res,
-        401,
-        "D2L Access Token missing. Please complete the OAuth login process first."
-      );
-    }
-    // console.log(d2lAccessToken, ".........d2l access_token");
     // --- Step 1: Create a Temporary Module (Top-Level) ---
     const moduleResponse = await axios.post(
       `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/root/`,
@@ -309,7 +309,6 @@ const publicInsertController = async (req, res) => {
       `Failed to insert image: ${err.message || "An unknown error occurred."}`
     );
   } finally {
-    const d2lAccessToken = req.cookies.d2lAccessToken;
     if (d2lAccessToken && orgUnitId) {
       if (topicId) {
         try {

@@ -6,24 +6,11 @@ const {
   clearSignedCookie,
   handleError,
   buildOAuthAuthUrl,
-  buildOAuthTokenPayload,
+  getNewD2LToken,
+  getUserId,
+  getValidD2LAccessToken,
 } = require("../utils/common.utils");
-
-const refreshAccessToken = async (refreshToken) => {
-  const payload = new URLSearchParams({
-    grant_type: "refresh_token",
-    refresh_token: refreshToken,
-    client_id: process.env.D2L_OAUTH_CLIENT_ID,
-    client_secret: process.env.D2L_OAUTH_CLIENT_SECRET,
-  });
-
-  const tokenRes = await axios.post(
-    process.env.D2L_OAUTH_TOKEN_URL,
-    payload.toString(),
-    { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-  );
-  return tokenRes.data;
-};
+const Token = require("../model/token.model");
 
 const oauthLoginController = (req, res) => {
   try {
@@ -41,7 +28,6 @@ const oauthLoginController = (req, res) => {
       { maxAge: 36000 }
     );
     const authUrl = buildOAuthAuthUrl(state);
-    // console.log(`Redirecting to D2L OAuth URL: ${authUrl}`);
     return lti.redirect(res, authUrl);
   } catch (error) {
     console.error("[/oauth/login] Uncaught error:", error.message || error);
@@ -86,42 +72,21 @@ const oauthCallbackController = async (req, res) => {
       console.error("[OAuth Callback] ERROR: Missing code parameter from D2L.");
       return handleError(res, 400, "Missing code param");
     }
-    const payload = buildOAuthTokenPayload(code);
-    console.log("Attempting to exchange OAuth code for token...");
-    const tokenRes = await axios.post(
-      process.env.D2L_OAUTH_TOKEN_URL,
-      payload.toString(),
-      { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
-    );
-    const { access_token, refresh_token, expires_in } = tokenRes.data;
+    // Exchange code for token
+    const tokenData = await getNewD2LToken(code);
+    const { access_token, refresh_token, expires_in } = tokenData;
     console.log("Access Token obtained successfully.");
 
-    const accessTokenMaxAge = (expires_in - 60) * 1000;
+    // Save to MongoDB using getUserId
+    const userId = getUserId(req, res);
+    console.log(userId, "userID");
+    const expires_at = new Date(Date.now() + (expires_in - 60) * 1000);
+    await Token.findOneAndUpdate(
+      { userId, provider: "d2l" },
+      { access_token, refresh_token, expires_at },
+      { upsert: true, new: true }
+    );
 
-    res.cookie("d2lAccessToken", access_token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      maxAge: accessTokenMaxAge,
-    });
-
-    if (refresh_token) {
-      res.cookie("d2lRefreshToken", refresh_token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "None",
-        maxAge: 30 * 24 * 60 * 60 * 1000,
-      });
-    }
-
-    res.cookie("d2lTokenExpiry", Date.now() + accessTokenMaxAge, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "None",
-      maxAge: accessTokenMaxAge,
-    });
-
-    // console.log(`Redirecting to original URL: ${returnToUrl}`);
     return res.redirect(returnToUrl);
   } catch (err) {
     console.error(
@@ -146,62 +111,13 @@ const oauthCallbackController = async (req, res) => {
 };
 
 const oauthCheckController = async (req, res) => {
-  const d2lAccessToken = req.cookies.d2lAccessToken;
-  const d2lRefreshToken = req.cookies.d2lRefreshToken;
-  const d2lTokenExpiry = req.cookies.d2lTokenExpiry;
-
-  if (!d2lAccessToken) {
-    return res.json({ authenticated: false });
+  const userId = getUserId(req, res);
+  const d2lAccessToken = await getValidD2LAccessToken(userId);
+  if (d2lAccessToken) {
+    return res.json({ authenticated: true });
+  } else {
+    return res.json({ authenticated: false, expired: true });
   }
-
-  if (d2lTokenExpiry && Date.now() >= parseInt(d2lTokenExpiry)) {
-    if (d2lRefreshToken) {
-      try {
-        const tokenData = await refreshAccessToken(d2lRefreshToken);
-        const { access_token, refresh_token, expires_in } = tokenData;
-
-        const accessTokenMaxAge = expires_in
-          ? (expires_in - 60) * 1000
-          : 3600000;
-
-        res.cookie("d2lAccessToken", access_token, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "None",
-          maxAge: accessTokenMaxAge,
-        });
-
-        if (refresh_token) {
-          res.cookie("d2lRefreshToken", refresh_token, {
-            httpOnly: true,
-            secure: true,
-            sameSite: "None",
-            maxAge: 30 * 24 * 60 * 60 * 1000,
-          });
-        }
-
-        res.cookie("d2lTokenExpiry", Date.now() + accessTokenMaxAge, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "None",
-          maxAge: accessTokenMaxAge,
-        });
-
-        return res.json({ authenticated: true, refreshed: true });
-      } catch (error) {
-        res.clearCookie("d2lAccessToken");
-        res.clearCookie("d2lRefreshToken");
-        res.clearCookie("d2lTokenExpiry");
-        return res.json({ authenticated: false, expired: true });
-      }
-    } else {
-      res.clearCookie("d2lAccessToken");
-      res.clearCookie("d2lTokenExpiry");
-      return res.json({ authenticated: false, expired: true });
-    }
-  }
-
-  return res.json({ authenticated: !!d2lAccessToken });
 };
 
 module.exports = {

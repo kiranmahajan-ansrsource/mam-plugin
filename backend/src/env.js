@@ -17,6 +17,7 @@ const requiredEnv = [
   "D2L_OAUTH_URL",
   "D2L_OAUTH_TOKEN_URL",
   "D2L_API_BASE_URL",
+  "ALLOWED_ROLES",
 ];
 
 const validateEnv = () => {

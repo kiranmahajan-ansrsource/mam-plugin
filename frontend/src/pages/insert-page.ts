@@ -112,9 +112,7 @@ export class InsertPage extends LitElement {
     }
 
     try {
-      const response = await axios.get("/oauth/check", {
-        withCredentials: true,
-      });
+      const response = await axios.get("/oauth/check");
 
       if (
         response.status === 200 &&

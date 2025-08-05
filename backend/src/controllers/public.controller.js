@@ -41,7 +41,7 @@ const publicInsertController = async (req, res) => {
   try {
     const finalImageDataFlat = req.body;
     const finalImageData = unflatten(finalImageDataFlat);
-    console.log("finalImageData:", finalImageData);
+    // console.log("finalImageData:", finalImageData);
     const { searchTerm } = req.query;
 
     if (!finalImageData?.SystemIdentifier) {

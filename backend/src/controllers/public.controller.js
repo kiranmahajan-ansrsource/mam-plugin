@@ -6,19 +6,27 @@ const {
   hasAllowedRole,
   unflatten,
   getUserId,
-  getValidD2LAccessToken,
+  getOrRenewToken,
 } = require("../utils/common.utils");
 const { logDecodedJwt } = require("../jwtLogger");
 const imageModel = require("../model/image.model");
 const organizationModel = require("../model/organization.model");
+const { getRefreshedD2LToken } = require("./oauth.controller");
 
 const publicInsertController = async (req, res) => {
   let moduleId, topicId;
   const orgUnitId = res.locals.context.context?.id;
   const orgLabel = res.locals.context.context?.label;
-  
+
   const userId = getUserId(req, res);
-  const d2lAccessToken = await getValidD2LAccessToken(userId);
+
+  const d2lAccessToken = await getOrRenewToken({
+    userId,
+    provider: "d2l",
+    getNewTokenFn: getRefreshedD2LToken,
+    getRefreshTokenFn: async () => null,
+  });
+
   if (!d2lAccessToken) {
     console.error(
       "D2L Access Token not found or refresh failed. User needs to re-authenticate via OAuth."
@@ -274,19 +282,30 @@ const publicInsertController = async (req, res) => {
     console.log("Deep Link Items Sent.");
     console.log("Organization ID:", organization?._id);
 
-    await imageModel.create({
-      ...finalImageData,
-      d2lImageUrl: d2lImageUrl,
-      d2lFullImageUrl: d2lFullImageUrl,
-      organization: organization._id,
-      altText: altText || "",
-      isDecorative: isDecorativeFlag,
-      keywords: (searchTerm || "")
-        .split(",")
-        .map((k) => k?.trim())
-        .filter(Boolean),
-    });
-    console.log(`Image with ID ${SystemIdentifier} cached in MongoDB.`);
+    await imageModel.findOneAndUpdate(
+      {
+        SystemIdentifier,
+        organization: organization._id,
+      },
+      {
+        $set: {
+          ...finalImageData,
+          d2lImageUrl: d2lImageUrl,
+          d2lFullImageUrl: d2lFullImageUrl,
+          organization: organization._id,
+          altText: altText || "",
+          isDecorative: isDecorativeFlag,
+          keywords: (searchTerm || "")
+            .split(",")
+            .map((k) => k?.trim())
+            .filter(Boolean),
+        },
+      },
+      { upsert: true, new: true }
+    );
+    console.log(
+      `Image with ID ${SystemIdentifier} cached in MongoDB (upserted).`
+    );
 
     return formHtml ? res.send(formHtml) : res.sendStatus(500);
   } catch (err) {

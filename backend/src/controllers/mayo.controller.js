@@ -1,5 +1,9 @@
 const axios = require("axios");
-const { getUserId, getOrUpdateToken } = require("../utils/common.utils");
+const {
+  getUserId,
+  getOrRenewToken,
+  handleError,
+} = require("../utils/common.utils");
 
 async function getNewMayoToken() {
   const response = await axios.post(
@@ -19,11 +23,17 @@ const mayoController = async (req, res) => {
   try {
     const { query, pagenumber, countperpage } = req.query;
     const userId = getUserId(req, res);
-    const accessToken = await getOrUpdateToken({
+
+    const accessToken = await getOrRenewToken({
       userId,
       provider: "mayo",
       getNewTokenFn: getNewMayoToken,
     });
+
+    if (!accessToken) {
+      return handleError(res, 401, "Failed to obtain Mayo access token");
+    }
+
     const mayoResponse = await axios.get(process.env.MAYO_IMG_SEARCH_URL, {
       headers: { Authorization: `Bearer ${accessToken}` },
       params: {
@@ -35,6 +45,7 @@ const mayoController = async (req, res) => {
           "SystemIdentifier,Title,Path_TR7,Path_TR1,CreateDate,EditDate,MediaType,DocSubType,mimetype,MediaNumber,Caption,Directory,UsageDescription,Keyword",
       },
     });
+
     const items = mayoResponse?.data?.APIResponse?.Items || [];
     const total = mayoResponse?.data?.APIResponse?.GlobalInfo?.TotalCount || 0;
     res.json({ results: items, total });

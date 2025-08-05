@@ -89,7 +89,7 @@ export class InsertPage extends LitElement {
   @state() private ltik: string = "";
   @state() private altText: string = "";
   @state() private isDecorative: boolean = false;
-  @state() private submitting = false;
+  @state() private isSubmitting = false;
   @state() private isAuthenticatedUser = false;
   @state() private errorMessage: string = "";
 
@@ -160,14 +160,14 @@ export class InsertPage extends LitElement {
   }
 
   private async submitForm() {
-    if (this.submitting) return;
-    this.submitting = true;
+    if (this.isSubmitting) return;
+    this.isSubmitting = true;
     this.errorMessage = "";
 
     if (!this.isDecorative && !this.altText.trim()) {
       this.errorMessage =
         "Please provide alt text or mark image as decorative.";
-      this.submitting = false;
+      this.isSubmitting = false;
       return;
     }
 
@@ -226,16 +226,16 @@ export class InsertPage extends LitElement {
       sessionStorage.removeItem("selectedImage");
       sessionStorage.removeItem("searchTerm");
     } catch (err: any) {
-      console.error(err);
+      this.isSubmitting = false;
+      this.errorMessage = "";
+      await this.updateComplete;
       this.errorMessage =
         "An error occurred during form submission. Please try again.";
-    } finally {
-      this.submitting = false;
     }
   }
 
   render() {
-    if (!this.isAuthenticatedUser) {
+    if (!this.isAuthenticatedUser || this.isSubmitting) {
       return html`<loader-spinner .overlay=${true}></loader-spinner>`;
     }
 
@@ -305,11 +305,9 @@ export class InsertPage extends LitElement {
             @click=${this.submitForm}
             ?disabled=${this.isDecorative
               ? false
-              : !this.altText || this.submitting}
+              : !this.altText || this.isSubmitting}
           >
-            ${this.submitting
-              ? html`<d2l-loading-spinner small></d2l-loading-spinner>`
-              : "Insert Image"}
+            Insert Image
           </d2l-button>
         </div>
       </div>

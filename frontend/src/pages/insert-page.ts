@@ -19,28 +19,27 @@ import axios from "axios";
 export class InsertPage extends LitElement {
   static styles = [
     css`
-      .container {
-        display: flex;
-        margin-top: 1rem;
-        flex-direction: column;
-        align-items: flex-start;
+      d2l-breadcrumb {
+        cursor: pointer;
       }
-      .horizontal-flex {
-        display: flex;
+      .main-container {
         width: 100%;
+        height: 100%;
+        display: flex;
         gap: 2rem;
       }
-      .preview {
+      .image-container {
         width: 500px;
         height: 310px;
         max-width: 50%;
         display: flex;
+        flex: 0 0 50%;
         align-items: center;
         justify-content: center;
         position: relative;
         overflow: hidden;
       }
-      .preview img {
+      .image-container img {
         max-width: 100%;
         max-height: 100%;
         width: auto;
@@ -48,40 +47,39 @@ export class InsertPage extends LitElement {
         object-fit: contain;
         object-position: center;
       }
-      .form-group {
+      .alt-text-container {
         max-width: 400px;
         flex: 1;
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
-        padding-right: 0.5rem;
-      }
-      .form-actions {
-        margin-top: 1rem;
-        display: flex;
-        gap: 1rem;
       }
       .checkbox-margin {
         margin-top: 0.5rem;
       }
-
       d2l-button {
         --d2l-button-padding-inline-end: 2rem;
         --d2l-button-padding-inline-start: 2rem;
       }
-
       d2l-button button {
         border-radius: 5px;
       }
-
       d2l-button[primary] {
         --d2l-color-celestine: #006fbf;
         --d2l-color-celestine-minus-1: rgba(5, 84, 173, 1);
       }
-
       d2l-button[secondary] {
         --d2l-color-gypsum: #e3e9f1;
         --d2l-color-mica: #d8dee6ff;
+      }
+      .ml-1 {
+        margin-left: 1rem;
+      }
+      .mt-1 {
+        margin-top: 1rem;
+      }
+      .mb-1 {
+        margin-bottom: 1rem;
       }
     `,
   ];
@@ -240,77 +238,76 @@ export class InsertPage extends LitElement {
     }
 
     return html`
-      <d2l-breadcrumbs>
-        <d2l-breadcrumb
-          href="#"
-          text="Search Results"
-          @click=${this.goToSearch}
-          style="cursor:pointer;"
-        ></d2l-breadcrumb>
-        <d2l-breadcrumb
-          href="#"
-          text="Details"
-          @click=${this.goBack}
-          style="cursor:pointer;"
-        ></d2l-breadcrumb>
-      </d2l-breadcrumbs>
-      <div class="container">
-        <div class="horizontal-flex">
-          <div class="preview">
-            <img
-              src=${this.image.Path_TR1?.URI || ""}
-              alt="${this.image.Title || this.image.SystemIdentifier || ""}"
-              crossorigin="anonymous"
-            />
-          </div>
-          <div class="form-group">
-            <d2l-input-textarea
-              id="tooltip-error"
-              label="Alternative Text (Describe your image)"
-              .value=${this.altText}
-              rows="2"
-              max-rows="5"
-              ?disabled=${this.isDecorative}
-              @input=${(e: any) => (this.altText = e.target.value)}
-              style="font-size: 1.1em;"
-            ></d2l-input-textarea>
-
-            ${!this.altText && !this.isDecorative
-              ? html`<d2l-tooltip for="tooltip-error" state="error">
-                  Provide alt text or mark image as decorative
-                </d2l-tooltip>`
-              : ""}
-
-            <d2l-input-checkbox
-              class="checkbox-margin"
-              .checked=${this.isDecorative}
-              @change=${(e: any) => {
-                this.isDecorative = e.target.checked;
-                if (this.isDecorative) this.altText = "";
-              }}
-              >This image is decorative</d2l-input-checkbox
-            >
-          </div>
-        </div>
-        <div class="form-actions">
-          <d2l-button
-            text="Back to Image Details"
+      <header class="header-container">
+        <d2l-breadcrumbs>
+          <d2l-breadcrumb
+            href="#"
+            text="Search Results"
+            @click=${this.goToSearch}
+          ></d2l-breadcrumb>
+          <d2l-breadcrumb
+            href="#"
+            text="Details"
             @click=${this.goBack}
-            secondary
-            >Back to Image Details</d2l-button
-          >
-          <d2l-button
-            text="Insert Image"
-            primary
-            @click=${this.submitForm}
-            ?disabled=${this.isDecorative
-              ? false
-              : !this.altText || this.isSubmitting}
-          >
-            Insert Image
-          </d2l-button>
+          ></d2l-breadcrumb>
+        </d2l-breadcrumbs>
+      </header>
+
+      <main class="main-container mt-1 mb-1">
+        <div class="image-container">
+          <img
+            src=${this.image.Path_TR1?.URI || ""}
+            alt="${this.image.Title || this.image.SystemIdentifier || ""}"
+            crossorigin="anonymous"
+          />
         </div>
-      </div>
+
+        <div class="alt-text-container">
+          <d2l-input-textarea
+            id="tooltip-error"
+            label="Alternative Text (Describe your image)"
+            .value=${this.altText}
+            rows="2"
+            max-rows="5"
+            ?disabled=${this.isDecorative}
+            @input=${(e: any) => (this.altText = e.target.value)}
+          ></d2l-input-textarea>
+
+          ${!this.altText && !this.isDecorative
+            ? html`<d2l-tooltip for="tooltip-error" state="error">
+                Provide alt text or mark image as decorative
+              </d2l-tooltip>`
+            : ""}
+
+          <d2l-input-checkbox
+            class="checkbox-margin"
+            .checked=${this.isDecorative}
+            @change=${(e: any) => {
+              this.isDecorative = e.target.checked;
+              if (this.isDecorative) this.altText = "";
+            }}
+            >This image is decorative</d2l-input-checkbox
+          >
+        </div>
+      </main>
+
+      <footer class="footer-container">
+        <d2l-button text="Back to Image Details" @click=${this.goBack} secondary
+          >Back to Image Details</d2l-button
+        >
+        <d2l-button
+          class="ml-1"
+          text="Insert Image"
+          primary
+          @click=${this.submitForm}
+          ?disabled=${this.isDecorative
+            ? false
+            : !this.altText || this.isSubmitting}
+        >
+          Insert Image
+        </d2l-button>
+      </footer>
+
       ${this.errorMessage
         ? html`<d2l-alert-toast open type="critical"
             >${this.errorMessage}</d2l-alert-toast

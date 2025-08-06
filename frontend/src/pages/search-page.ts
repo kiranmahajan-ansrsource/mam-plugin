@@ -8,6 +8,7 @@ import "@brightspace-ui/core/components/link/link.js";
 import "@brightspace-ui/core/components/paging/pager-load-more.js";
 import "../components/pageable-wrapper";
 import "../components/search-summary";
+import "../components/thumbnail-list";
 
 import { getLtik } from "../utils/helper";
 import axios from "axios";
@@ -24,28 +25,6 @@ export class SearchPage extends LitElement {
       margin-top: 1rem;
       margin-bottom: 1rem;
       font-weight: normal;
-    }
-    .thumbnail-container {
-      display: flex;
-      justify-content: center;
-      flex-wrap: wrap;
-      gap: 1rem;
-      margin-top: 1rem;
-      margin-bottom: 1rem;
-    }
-    .thumbnail {
-      width: 250px;
-      height: 150px;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-    }
-    .thumbnail:hover {
-      transform: scale(1.02);
-    }
-    .thumbnail img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
     }
     .spinner-container {
       height: 65vh;
@@ -211,74 +190,69 @@ export class SearchPage extends LitElement {
 
   render() {
     return html`
-      <h4 class="search-heading">Search by keyword to find relevant images.</h4>
+      <main class="main-container">
+        <h4 class="search-heading">
+          Search by keyword to find relevant images.
+        </h4>
 
-      <d2l-input-search
-        label="Search"
-        placeholder="Search..."
-        .value=${this.searchTerm}
-        @d2l-input-search-searched=${(e: any) => {
-          this.searchTerm = e.detail.value;
-          if (!this.searchTerm.trim()) {
-            this._resetSearch();
-          } else {
-            this._triggerSearch();
-          }
-        }}
-        @input=${(e: any) => (this.searchTerm = e.target.value)}
-      ></d2l-input-search>
+        <d2l-input-search
+          label="Search"
+          placeholder="Search..."
+          .value=${this.searchTerm}
+          @d2l-input-search-searched=${(e: any) => {
+            this.searchTerm = e.detail.value;
+            if (!this.searchTerm.trim()) {
+              this._resetSearch();
+            } else {
+              this._triggerSearch();
+            }
+          }}
+          @input=${(e: any) => (this.searchTerm = e.target.value)}
+        ></d2l-input-search>
 
-      ${this.hasSearched
-        ? html`
-            <search-summary
-              .totalResults=${this.totalCount}
-              @clear-search=${() => this._resetSearch()}
-            ></search-summary>
-          `
+        ${this.hasSearched
+          ? html`
+              <search-summary
+                .totalResults=${this.totalCount}
+                @clear-search=${() => this._resetSearch()}
+              ></search-summary>
+            `
+          : null}
+        ${this.loading
+          ? html`<loader-spinner
+              .size=${100}
+              .overlay=${false}
+            ></loader-spinner>`
+          : html`
+              <d2l-pageable-wrapper .itemCount=${this.totalCount}>
+                <thumbnail-list
+                  .images=${this.results}
+                  .onSelect=${(img: any) => this._select(img)}
+                ></thumbnail-list>
+
+                <d2l-pager-load-more
+                  slot="pager"
+                  ?has-more=${this.results.length < this.totalCount}
+                  .pageSize=${this.countperpage}
+                  @d2l-pager-load-more=${async (e: CustomEvent) => {
+                    await this.loadMore();
+                    e.detail.complete();
+                  }}
+                ></d2l-pager-load-more>
+              </d2l-pageable-wrapper>
+            `}
+      </main>
+
+      ${this.fromFallback
+        ? html`<d2l-alert-toast open type="warning"
+            >${this.errorMessage}</d2l-alert-toast
+          >`
         : null}
       ${this.errorMessage
         ? html`<d2l-alert-toast open type="critical"
             >${this.errorMessage}</d2l-alert-toast
           >`
         : null}
-      ${this.fromFallback
-        ? html`<d2l-alert-toast open type="warning"
-            >${this.errorMessage}</d2l-alert-toast
-          >`
-        : null}
-      ${this.loading
-        ? html`
-            <div class="spinner-container">
-              <d2l-loading-spinner size="100"></d2l-loading-spinner>
-            </div>
-          `
-        : html`
-            <d2l-pageable-wrapper .itemCount=${this.totalCount}>
-              <div class="thumbnail-container">
-                ${this.results.map(
-                  (img) => html`
-                    <div class="thumbnail" @click=${() => this._select(img)}>
-                      <img
-                        src=${img.Path_TR7?.URI || ""}
-                        alt=${img.Title || ""}
-                        crossorigin="anonymous"
-                      />
-                    </div>
-                  `
-                )}
-              </div>
-
-              <d2l-pager-load-more
-                slot="pager"
-                ?has-more=${this.results.length < this.totalCount}
-                .pageSize=${this.countperpage}
-                @d2l-pager-load-more=${async (e: CustomEvent) => {
-                  await this.loadMore();
-                  e.detail.complete();
-                }}
-              ></d2l-pager-load-more>
-            </d2l-pageable-wrapper>
-          `}
     `;
   }
 }

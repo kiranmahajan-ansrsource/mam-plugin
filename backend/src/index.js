@@ -4,9 +4,11 @@ const lti = require("ltijs").Provider;
 const routes = require("./routes");
 const { logDecodedJwt } = require("./jwtLogger");
 const { hasAllowedRole } = require("./utils/common.utils");
+const { generalLimiter } = require("../middleware/rateLimitor");
 const isDev = process.env.NODE_ENV !== "production";
 const publicPath = path.join(__dirname, "../public");
 const COOKIE_SECRET = process.env.LTI_KEY;
+// const cors = require("cors");
 
 validateEnv();
 
@@ -62,6 +64,23 @@ lti.onDeepLinking(async (token, req, res) => {
   return lti.redirect(res, "/deeplink", { newResource: true });
 });
 
+// --------------------cors -------------------
+
+// const allowedOrigins = ["http://localhost:3000"];
+// lti.app.use(
+//   cors({
+//     origin: function (origin, callback) {
+//       if (!origin || allowedOrigins.includes(origin)) {
+//         return callback(null, true);
+//       } else {
+//         return callback(new Error("Not allowed by CORS"));
+//       }
+//     },
+//     credentials: true,
+//   })
+// );
+
+lti.app.use(generalLimiter);
 lti.app.use(routes);
 
 const setup = async () => {

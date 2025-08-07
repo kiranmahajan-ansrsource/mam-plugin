@@ -1,18 +1,19 @@
 import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
-import "@brightspace-ui/core/components/inputs/input-search.js";
-import "@brightspace-ui/core/components/loading-spinner/loading-spinner.js";
-import "@brightspace-ui/core/components/alert/alert-toast.js";
+
 import "@brightspace-ui/core/components/button/button.js";
 import "@brightspace-ui/core/components/link/link.js";
-import "@brightspace-ui/core/components/paging/pager-load-more.js";
-import "../components/pageable-wrapper";
 import "../components/search-summary";
 import "../components/thumbnail-list";
-
-import { getLtik } from "../utils/helper";
-import axios from "axios";
-import { Router } from "@vaadin/router";
+import "../components/search-bar";
+import "../components/loader-spinner";
+import "../components/toast-alert";
+import {
+  getLtik,
+  goToDetails,
+  searchFallbackImages,
+  searchImages,
+} from "../utils/helper";
 
 @customElement("search-page")
 export class SearchPage extends LitElement {
@@ -26,19 +27,10 @@ export class SearchPage extends LitElement {
       margin-bottom: 1rem;
       font-weight: normal;
     }
-    .spinner-container {
-      height: 65vh;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-    }
-
     d2l-input-search {
       width: 99.5%;
     }
   `;
-
   @state() private searchTerm = "";
   @state() private lastSearchTerm = "";
   @state() private results: any[] = [];
@@ -50,7 +42,6 @@ export class SearchPage extends LitElement {
   @state() private errorMessage = "";
   @state() private hasSearched = false;
   @state() private fromFallback = false;
-
   private readonly countperpage = 12;
 
   private _resetSearch() {
@@ -63,28 +54,24 @@ export class SearchPage extends LitElement {
     this.errorMessage = "";
     this.fromFallback = false;
   }
-
   firstUpdated() {
     this.ltik = getLtik();
   }
-
   private async _triggerSearch() {
     if (!this.searchTerm.trim()) return;
     this.loading = true;
     this.errorMessage = "";
     this.fromFallback = false;
     try {
-      const res = await axios.get("/api/images", {
-        params: {
-          query: this.searchTerm,
-          pagenumber: 1,
-          countperpage: this.countperpage,
-        },
-        headers: { Authorization: `Bearer ${this.ltik}` },
-      });
-      const items = res.data.results || [];
+      const data = await searchImages(
+        this.searchTerm,
+        1,
+        this.countperpage,
+        this.ltik!
+      );
+      const items = data.results || [];
       this.results = items;
-      this.totalCount = res.data.total || items.length;
+      this.totalCount = data.total || items.length;
       this.page = 1;
       this.lastSearchTerm = this.searchTerm;
       this.hasSearched = true;
@@ -93,7 +80,6 @@ export class SearchPage extends LitElement {
           "No images found. Please try a different search term.";
       }
     } catch (err) {
-      // fallbackErrorFunction in case of error
       const fallbackWorked = await this.fallbackErrorFunction(true);
       if (!fallbackWorked) {
         this.errorMessage =
@@ -103,24 +89,18 @@ export class SearchPage extends LitElement {
       this.loading = false;
     }
   }
-
   private async loadMore() {
     if (this.loadingMore || this.results.length >= this.totalCount) return;
-
     this.loadingMore = true;
     const nextPage = this.page + 1;
-
     try {
-      const res = await axios.get("/api/images", {
-        params: {
-          query: this.lastSearchTerm,
-          pagenumber: nextPage,
-          countperpage: this.countperpage,
-        },
-        headers: { Authorization: `Bearer ${this.ltik}` },
-      });
-
-      const items = res.data.results || [];
+      const data = await searchImages(
+        this.lastSearchTerm,
+        nextPage,
+        this.countperpage,
+        this.ltik!
+      );
+      const items = data.results || [];
       this.results = [...this.results, ...items];
       this.page = nextPage;
     } catch (err) {
@@ -136,12 +116,8 @@ export class SearchPage extends LitElement {
   }
   private async fallbackErrorFunction(reset: boolean): Promise<boolean> {
     try {
-      const res = await axios.get("/search-db", {
-        params: { query: this.searchTerm },
-        headers: { Authorization: `Bearer ${this.ltik}` },
-      });
-
-      const items = res.data || [];
+      const data = await searchFallbackImages(this.searchTerm, this.ltik!);
+      const items = data || [];
       if (!items || items.length === 0) {
         this.results = [];
         this.totalCount = 0;
@@ -156,7 +132,6 @@ export class SearchPage extends LitElement {
       const mappedImages = items.map((item: any) => ({
         ...item,
       }));
-
       if (reset) {
         this.results = mappedImages;
         this.page = 1;
@@ -174,32 +149,32 @@ export class SearchPage extends LitElement {
       return false;
     }
   }
-
   private _select(image: any) {
+    if (!image || typeof image !== "object") return;
     const finalImage = { ...image };
-
     if ("altText" in finalImage) {
       delete finalImage.altText;
     }
-
     sessionStorage.setItem("selectedImage", JSON.stringify(finalImage));
     sessionStorage.setItem("searchTerm", JSON.stringify(this.searchTerm));
-
-    Router.go(`/details?ltik=${this.ltik}`);
+    if (!this.ltik) return;
+    goToDetails(this.ltik);
   }
 
   render() {
     return html`
-      <main class="main-container">
+      <main
+        class="main-container"
+        role="main"
+        aria-label="Image search results"
+      >
         <h4 class="search-heading">
           Search by keyword to find relevant images.
         </h4>
 
-        <d2l-input-search
-          label="Search"
-          placeholder="Search..."
+        <search-bar
           .value=${this.searchTerm}
-          @d2l-input-search-searched=${(e: any) => {
+          @search=${(e: any) => {
             this.searchTerm = e.detail.value;
             if (!this.searchTerm.trim()) {
               this._resetSearch();
@@ -207,8 +182,8 @@ export class SearchPage extends LitElement {
               this._triggerSearch();
             }
           }}
-          @input=${(e: any) => (this.searchTerm = e.target.value)}
-        ></d2l-input-search>
+          @input-change=${(e: any) => (this.searchTerm = e.detail)}
+        ></search-bar>
 
         ${this.hasSearched
           ? html`
@@ -219,40 +194,22 @@ export class SearchPage extends LitElement {
             `
           : null}
         ${this.loading
-          ? html`<loader-spinner
-              .size=${100}
-              .overlay=${false}
-            ></loader-spinner>`
+          ? html`<loader-spinner .overlay=${false}></loader-spinner>`
           : html`
-              <d2l-pageable-wrapper .itemCount=${this.totalCount}>
-                <thumbnail-list
-                  .images=${this.results}
-                  .onSelect=${(img: any) => this._select(img)}
-                ></thumbnail-list>
-
-                <d2l-pager-load-more
-                  slot="pager"
-                  ?has-more=${this.results.length < this.totalCount}
-                  .pageSize=${this.countperpage}
-                  @d2l-pager-load-more=${async (e: CustomEvent) => {
-                    await this.loadMore();
-                    e.detail.complete();
-                  }}
-                ></d2l-pager-load-more>
-              </d2l-pageable-wrapper>
+              <thumbnail-list
+                .images=${this.results}
+                .totalCount=${this.totalCount}
+                .pageSize=${this.countperpage}
+                .onSelect=${(img: any) => this._select(img)}
+                .onLoadMore=${() => this.loadMore()}
+              >
+              </thumbnail-list>
             `}
       </main>
-
-      ${this.fromFallback
-        ? html`<d2l-alert-toast open type="warning"
-            >${this.errorMessage}</d2l-alert-toast
-          >`
-        : null}
-      ${this.errorMessage
-        ? html`<d2l-alert-toast open type="critical"
-            >${this.errorMessage}</d2l-alert-toast
-          >`
-        : null}
+      <toast-alert
+        .message=${this.errorMessage}
+        .isFallback=${this.fromFallback}
+      ></toast-alert>
     `;
   }
 }

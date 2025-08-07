@@ -7,14 +7,12 @@ const PageableBase = PageableMixin(LitElement) as typeof LitElement;
 @customElement("d2l-pageable-wrapper")
 export class D2LPageableWrapper extends PageableBase {
   private _mutationObserver: MutationObserver | null = null;
-
   render() {
     return html`
       <slot @slotchange=${this._handleSlotChange}></slot>
       ${(this as any)._renderPagerContainer()}
     `;
   }
-
   _getItems() {
     const container = this.querySelector(".thumbnail-container");
     return container?.querySelectorAll(".thumbnail") ?? [];

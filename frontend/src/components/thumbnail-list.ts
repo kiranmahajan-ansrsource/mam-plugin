@@ -1,5 +1,7 @@
 import { LitElement, html, css } from "lit";
 import { customElement, property } from "lit/decorators.js";
+import "@brightspace-ui/core/components/paging/pager-load-more.js";
+import "./pageable-wrapper";
 
 @customElement("thumbnail-list")
 export class ThumbnailList extends LitElement {
@@ -29,23 +31,42 @@ export class ThumbnailList extends LitElement {
   `;
 
   @property({ type: Array }) images: any[] = [];
+  @property({ type: Number }) totalCount = 0;
+  @property({ type: Number }) pageSize = 12;
   @property({ type: Function }) onSelect: (img: any) => void = () => {};
+  @property({ type: Function }) onLoadMore: () => void = () => {};
 
   render() {
     return html`
-      <div class="thumbnail-container">
-        ${this.images.map(
-          (img) => html`
-            <div class="thumbnail" @click=${() => this.onSelect(img)}>
-              <img
-                src=${img.Path_TR7?.URI || ""}
-                alt=${img.Title || ""}
-                crossorigin="anonymous"
-              />
-            </div>
-          `
-        )}
-      </div>
+      <d2l-pageable-wrapper .itemCount=${this.totalCount}>
+        <div class="thumbnail-container">
+          ${this.images.map(
+            (img) => html`
+              <div
+                tabindex="0"
+                class="thumbnail"
+                @click=${() => this.onSelect(img)}
+              >
+                <img
+                  src=${img.Path_TR7?.URI || ""}
+                  alt=${img.Title || ""}
+                  crossorigin="anonymous"
+                />
+              </div>
+            `
+          )}
+        </div>
+
+        <d2l-pager-load-more
+          slot="pager"
+          ?has-more=${this.images.length < this.totalCount}
+          .pageSize=${this.pageSize}
+          @d2l-pager-load-more=${async (e: CustomEvent) => {
+            await this.onLoadMore();
+            e.detail.complete();
+          }}
+        ></d2l-pager-load-more>
+      </d2l-pageable-wrapper>
     `;
   }
 }

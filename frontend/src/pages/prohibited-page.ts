@@ -2,6 +2,7 @@ import { LitElement, html, css } from "lit";
 import { customElement, state } from "lit/decorators.js";
 import axios from "axios";
 import { getLtik } from "../utils/helper";
+import "../components/loader-spinner";
 
 @customElement("prohibited-page")
 export class ProhibitedPage extends LitElement {
@@ -18,7 +19,6 @@ export class ProhibitedPage extends LitElement {
       height: 100vh;
       padding: 2rem;
     }
-
     .container {
       height: 100%;
       width: 100%;
@@ -28,20 +28,16 @@ export class ProhibitedPage extends LitElement {
       flex-direction: column;
       overflow: hidden;
     }
-
     .icon {
       font-size: 3rem;
     }
-
     h1 {
       color: #333;
       margin-bottom: 1rem;
     }
-
     p {
       color: #666;
     }
-
     .allowed-roles {
       display: flex;
       align-items: center;
@@ -54,7 +50,6 @@ export class ProhibitedPage extends LitElement {
       margin-bottom: 1rem;
       width: 80%;
     }
-
     .role-item {
       font-weight: bold;
     }
@@ -89,14 +84,13 @@ export class ProhibitedPage extends LitElement {
 
   render() {
     if (this.isLoading) {
-      return html`<loader-spinner .overlay=${true}></loader-spinner>`;
+      return html`<loader-spinner></loader-spinner>`;
     }
     return html`
       <div class="container">
         <div class="icon">🚫</div>
         <h1>Access Restricted</h1>
         <p>This application is only available to specific roles given below:</p>
-
         <div class="allowed-roles">
           <ul>
             ${this.allowedRoles.map(
@@ -104,7 +98,6 @@ export class ProhibitedPage extends LitElement {
             )}
           </ul>
         </div>
-
         <em> Please contact your administrator for access to MAM tool. </em>
       </div>
     `;

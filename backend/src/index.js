@@ -4,6 +4,7 @@ const lti = require("ltijs").Provider;
 const routes = require("./routes");
 const { logDecodedJwt } = require("./jwtLogger");
 const { hasAllowedRole, setSignedCookie } = require("./utils/common.utils");
+const { generalLimiter } = require("./middleware/rate-limitor");
 require("dotenv").config();
 const isDev = process.env.NODE_ENV !== "production";
 const publicPath = path.join(__dirname, "../public");
@@ -26,6 +27,29 @@ lti.setup(
   },
   COOKIE_SECRET
 );
+
+
+// --------------------cors -------------------
+
+
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
+  : [];
+  lti.app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
+lti.app.use(generalLimiter);
+
 
 lti.onInvalidToken((req, res) => {
   if (res?.locals?.err?.details?.message === "TOKEN_TOO_OLD") {

@@ -28,4 +28,4 @@ const validateEnv = () => {
   }
 };
 
-module.exports = { validateEnv, requiredEnv };
+module.exports = { validateEnv };

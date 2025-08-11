@@ -7,4 +7,6 @@ module.exports = {
   ...require("./user.utils"),
   ...require("./token.utils"),
   ...require("./error.utils"),
+  ...require("./logger.utils"),
+  ...require("./env.utils"),
 };

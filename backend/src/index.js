@@ -1,12 +1,16 @@
 require("dotenv").config();
-const { validateEnv } = require("./env");
 const path = require("path");
 const lti = require("ltijs").Provider;
+const {
+  hasAllowedRole,
+  setSignedCookie,
+  logDecodedJwt,
+  validateEnv,
+} = require("./utils");
 const routes = require("./routes");
-const { hasAllowedRole, setSignedCookie, logDecodedJwt } = require("./utils");
+const errorHandler = require("./middleware/error.middleware");
 const isDev = process.env.NODE_ENV !== "production";
 const publicPath = path.join(__dirname, "../public");
-const errorHandler = require("./middleware/error.middleware");
 const COOKIE_SECRET = process.env.LTI_KEY;
 
 validateEnv();

@@ -9,12 +9,12 @@ const {
   getOrRenewToken,
   ALLOWED_ROLES,
   normalizeRole,
+  logDecodedJwt,
+  HttpError,
 } = require("../utils");
-const { logDecodedJwt } = require("../jwtLogger");
 const imageModel = require("../model/image.model");
 const organizationModel = require("../model/organization.model");
 const { getRefreshedD2LToken } = require("./oauth.controller");
-const { HttpError } = require("../utils");
 
 const publicInsertController = asyncHandler(async (req, res) => {
   let moduleId, topicId;

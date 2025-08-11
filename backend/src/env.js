@@ -26,7 +26,6 @@ const validateEnv = () => {
       throw new Error(`Missing required environment variable: ${key}`);
     }
   }
-  console.log("All required environment variables loaded and validated.");
 };
 
 module.exports = { validateEnv, requiredEnv };

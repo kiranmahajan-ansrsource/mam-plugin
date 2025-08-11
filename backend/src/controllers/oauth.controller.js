@@ -4,12 +4,12 @@ const lti = require("ltijs").Provider;
 const {
   setSignedCookie,
   clearSignedCookie,
-  handleError,
-  buildOAuthAuthUrl,
+  httpError,
+  buildOAuthUrl,
   getOrRenewToken,
   saveTokenToDb,
   getUserId,
-} = require("../utils/common.utils");
+} = require("../utils");
 
 async function getNewD2LToken(code) {
   const payload = new URLSearchParams({
@@ -64,12 +64,11 @@ const oauthLoginController = (req, res) => {
       { maxAge: 10 * 60 * 1000 }
     );
 
-    const authUrl = buildOAuthAuthUrl(state);
+    const authUrl = buildOAuthUrl(state);
     return lti.redirect(res, authUrl);
   } catch (error) {
     console.error("[/oauth/login] Uncaught error:", error.message || error);
-    return handleError(
-      res,
+    return httpError(
       500,
       "An unexpected error occurred during OAuth login initiation."
     );
@@ -87,8 +86,7 @@ const oauthCallbackController = async (req, res) => {
       console.error(
         "[OAuth Callback] ERROR: Signed OAuth state cookie not found or tampered."
       );
-      return handleError(
-        res,
+      return httpError(
         403,
         "Authentication failed: Invalid or missing state. Please try logging in again."
       );
@@ -101,8 +99,7 @@ const oauthCallbackController = async (req, res) => {
       console.error(
         "[OAuth Callback] ERROR: Invalid or missing state parameter from D2L callback."
       );
-      return handleError(
-        res,
+      return httpError(
         403,
         "Invalid OAuth state. Please try logging in again."
       );
@@ -112,7 +109,7 @@ const oauthCallbackController = async (req, res) => {
 
     if (!code) {
       console.error("[OAuth Callback] ERROR: Missing code parameter from D2L.");
-      return handleError(res, 400, "Missing code param");
+      return httpError(400, "Missing code param");
     }
 
     const tokenData = await getNewD2LToken(code);
@@ -138,8 +135,7 @@ const oauthCallbackController = async (req, res) => {
       }
     }
 
-    return handleError(
-      res,
+    return httpError(
       500,
       "OAuth token exchange failed or an unexpected error occurred."
     );

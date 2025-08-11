@@ -68,13 +68,12 @@ export class ProhibitedPage extends LitElement {
         headers: { Authorization: `Bearer ${this.ltik}` },
       });
       const allowedRoles = response.data.allowedRoles || [];
-      console.log(allowedRoles);
+      console.log("Allowed roles from API:", allowedRoles);
 
-      this.allowedRoles = allowedRoles.map((role: string) => {
-        const parts = role.split("#");
-        const roleName = parts[parts.length - 1].toLowerCase();
-        return roleName.charAt(0).toUpperCase() + roleName.slice(1);
-      });
+      this.allowedRoles = allowedRoles.map(
+        (role: string) =>
+          role.charAt(0).toUpperCase() + role.slice(1).toLowerCase()
+      );
     } catch (error) {
       console.error("Failed to fetch allowed roles:", error);
       this.allowedRoles = [];

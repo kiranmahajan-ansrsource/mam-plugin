@@ -2,12 +2,13 @@ const lti = require("ltijs").Provider;
 const axios = require("axios");
 const {
   fetchImageBuffer,
-  handleError,
   hasAllowedRole,
   unflatten,
   getUserId,
   getOrRenewToken,
-} = require("../utils/common.utils");
+  ALLOWED_ROLES,
+  normalizeRole,
+} = require("../utils");
 const { logDecodedJwt } = require("../jwtLogger");
 const imageModel = require("../model/image.model");
 const organizationModel = require("../model/organization.model");
@@ -31,8 +32,7 @@ const publicInsertController = async (req, res) => {
     console.error(
       "D2L Access Token not found or refresh failed. User needs to re-authenticate via OAuth."
     );
-    return handleError(
-      res,
+    return httpError(
       401,
       "D2L Access Token missing or expired. Please complete the OAuth login process first."
     );
@@ -45,7 +45,7 @@ const publicInsertController = async (req, res) => {
     const { searchTerm } = req.query;
 
     if (!finalImageData?.SystemIdentifier) {
-      return handleError(res, 400, "Missing SystemIdentifier in request body.");
+      return httpError(400, "Missing SystemIdentifier in request body.");
     }
 
     const { SystemIdentifier, altText, isDecorative } = finalImageData;
@@ -133,8 +133,7 @@ const publicInsertController = async (req, res) => {
       console.error(
         "[/insert] ERROR: LTI context or context ID missing. Please launch the tool from D2L."
       );
-      return handleError(
-        res,
+      return httpError(
         401,
         "LTI context missing. Please launch the tool from D2L."
       );
@@ -322,8 +321,7 @@ const publicInsertController = async (req, res) => {
         console.error("Axios Error Response Data:", err.response.data);
       }
     }
-    return handleError(
-      res,
+    return httpError(
       500,
       `Failed to insert image: ${err.message || "An unknown error occurred."}`
     );
@@ -370,20 +368,14 @@ const publicInsertController = async (req, res) => {
   }
 };
 
-const rolesString = process.env.ALLOWED_ROLES || "";
-
-const ALLOWED_ROLES = rolesString
-  .split(",")
-  .map((role) => role.trim())
-  .filter((role) => role);
-
 const publicRolesController = async (req, res) => {
   const userRoles = res.locals.context?.roles || [];
   const isAllowed = hasAllowedRole(userRoles);
 
   res.json({
     roles: userRoles,
-    isAllowed: isAllowed,
+    normalizedRoles: userRoles.map(normalizeRole),
+    isAllowed,
     allowedRoles: ALLOWED_ROLES,
   });
 };

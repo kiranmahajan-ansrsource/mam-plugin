@@ -1,9 +1,5 @@
 const axios = require("axios");
-const {
-  getUserId,
-  getOrRenewToken,
-  handleError,
-} = require("../utils/common.utils");
+const { getUserId, getOrRenewToken, httpError } = require("../utils");
 
 async function getNewMayoToken() {
   const response = await axios.post(
@@ -31,7 +27,7 @@ const mayoController = async (req, res) => {
     });
 
     if (!accessToken) {
-      return handleError(res, 401, "Failed to obtain Mayo access token");
+      return httpError(401, "Failed to obtain Mayo access token");
     }
 
     const mayoResponse = await axios.get(process.env.MAYO_IMG_SEARCH_URL, {

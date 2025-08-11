@@ -4,9 +4,10 @@ const path = require("path");
 const lti = require("ltijs").Provider;
 const routes = require("./routes");
 const { logDecodedJwt } = require("./jwtLogger");
-const { hasAllowedRole, setSignedCookie } = require("./utils/common.utils");
+const { hasAllowedRole, setSignedCookie } = require("./utils");
 const isDev = process.env.NODE_ENV !== "production";
 const publicPath = path.join(__dirname, "../public");
+const errorHandler = require("./middleware/error.middleware");
 const COOKIE_SECRET = process.env.LTI_KEY;
 
 validateEnv();
@@ -73,6 +74,8 @@ lti.onDeepLinking(async (token, req, res) => {
 });
 
 lti.app.use(routes);
+
+lti.app.use(errorHandler);
 
 const setup = async () => {
   await lti.deploy({ port: process.env.PORT, silent: true });

@@ -19,7 +19,7 @@ export class ProhibitedPage extends LitElement {
       height: 100vh;
       padding: 2rem;
     }
-    .container {
+    .main-container {
       height: 100%;
       width: 100%;
       display: flex;
@@ -68,6 +68,7 @@ export class ProhibitedPage extends LitElement {
         headers: { Authorization: `Bearer ${this.ltik}` },
       });
       const allowedRoles = response.data.allowedRoles || [];
+      console.log(allowedRoles);
 
       this.allowedRoles = allowedRoles.map((role: string) => {
         const parts = role.split("#");
@@ -87,7 +88,7 @@ export class ProhibitedPage extends LitElement {
       return html`<loader-spinner></loader-spinner>`;
     }
     return html`
-      <div class="container">
+      <main class="main-container" role="main" aria-label="Prohibited Page">
         <div class="icon">🚫</div>
         <h1>Access Restricted</h1>
         <p>This application is only available to specific roles given below:</p>
@@ -99,7 +100,7 @@ export class ProhibitedPage extends LitElement {
           </ul>
         </div>
         <em> Please contact your administrator for access to MAM tool. </em>
-      </div>
+      </main>
     `;
   }
 }

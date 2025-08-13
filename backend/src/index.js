@@ -1,3 +1,4 @@
+require("dotenv").config();
 const { validateEnv } = require("./env");
 const path = require("path");
 const lti = require("ltijs").Provider;
@@ -32,21 +33,21 @@ lti.setup(
 // --------------------cors -------------------
 
 
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
-  : [];
-  lti.app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
-    credentials: true,
-  })
-);
+// const allowedOrigins = process.env.ALLOWED_ORIGINS
+//   ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
+//   : [];
+//   lti.app.use(
+//   cors({
+//     origin: function (origin, callback) {
+//       if (!origin || allowedOrigins.includes(origin)) {
+//         callback(null, true);
+//       } else {
+//         callback(new Error("Not allowed by CORS"));
+//       }
+//     },
+//     credentials: true,
+//   })
+// );
 
 lti.app.use(generalLimiter);
 

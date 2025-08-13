@@ -6,9 +6,22 @@ const {
   publicRolesController,
   publicSearchDBController,
 } = require("../controllers/public.controller");
+const validateRequest = require("../middleware/validateRequest");
+const {
+  insertValidator,
+  searchDbValidator,
+} = require("../validators/public.validator");
 
-router.post("/insert", publicInsertController);
+router.post(
+  "/insert",
+  validateRequest(insertValidator),
+  publicInsertController
+);
 router.get("/roles", publicRolesController);
-router.get("/search-db", publicSearchDBController);
+router.get(
+  "/search-db",
+  validateRequest(searchDbValidator, "query"),
+  publicSearchDBController
+);
 
 module.exports = router;

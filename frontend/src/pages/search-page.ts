@@ -166,7 +166,7 @@ export class SearchPage extends LitElement {
       <main
         class="main-container"
         role="main"
-        aria-label="Image search results"
+        aria-label="Image search page"
       >
         <h4 class="search-heading">
           Search by keyword to find relevant images.

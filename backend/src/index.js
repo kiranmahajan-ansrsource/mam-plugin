@@ -1,12 +1,18 @@
 require("dotenv").config();
-const { validateEnv } = require("./env");
 const path = require("path");
 const lti = require("ltijs").Provider;
+const cors = require("cors");
+const {
+  hasAllowedRole,
+  setSignedCookie,
+  logDecodedJwt,
+  validateEnv,
+} = require("./utils");
 const routes = require("./routes");
-const { logDecodedJwt } = require("./jwtLogger");
-const { hasAllowedRole, setSignedCookie } = require("./utils/common.utils");
+
 const { generalLimiter } = require("./middleware/rate-limitor");
 require("dotenv").config();
+const errorHandler = require("./middleware/error.middleware");
 const isDev = process.env.NODE_ENV !== "production";
 const publicPath = path.join(__dirname, "../public");
 const COOKIE_SECRET = process.env.LTI_KEY;
@@ -33,21 +39,21 @@ lti.setup(
 // --------------------cors -------------------
 
 
-// const allowedOrigins = process.env.ALLOWED_ORIGINS
-//   ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
-//   : [];
-//   lti.app.use(
-//   cors({
-//     origin: function (origin, callback) {
-//       if (!origin || allowedOrigins.includes(origin)) {
-//         callback(null, true);
-//       } else {
-//         callback(new Error("Not allowed by CORS"));
-//       }
-//     },
-//     credentials: true,
-//   })
-// );
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",").map(o => o.trim())
+  : [];
+  lti.app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 lti.app.use(generalLimiter);
 
@@ -98,6 +104,8 @@ lti.onDeepLinking(async (token, req, res) => {
 });
 
 lti.app.use(routes);
+
+lti.app.use(errorHandler);
 
 const setup = async () => {
   await lti.deploy({ port: process.env.PORT, silent: true });

@@ -2,7 +2,7 @@ const mongoose = require("mongoose");
 
 const imageSchema = new mongoose.Schema(
   {
-    SystemIdentifier: { type: String, required: true, unique: true },
+    SystemIdentifier: { type: String, required: true },
     Title: { type: String },
     d2lFullImageUrl: { type: String },
     d2lImageUrl: { type: String },
@@ -39,5 +39,7 @@ const imageSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+imageSchema.index({ SystemIdentifier: 1, organization: 1 }, { unique: true });
 
 module.exports = mongoose.model("Image", imageSchema);

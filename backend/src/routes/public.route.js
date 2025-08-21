@@ -14,7 +14,7 @@ const {
 
 router.post(
   "/insert",
-  validateRequest(insertValidator),
+  // validateRequest(insertValidator),
   publicInsertController
 );
 router.get("/roles", publicRolesController);

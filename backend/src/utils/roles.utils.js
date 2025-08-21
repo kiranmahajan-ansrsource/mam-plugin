@@ -10,7 +10,10 @@ function normalizeRole(role) {
 function hasAllowedRole(userRoles) {
   if (!Array.isArray(userRoles) || userRoles.length === 0) return false;
 
-  return userRoles.some((role) => ALLOWED_ROLES.includes(normalizeRole(role)));
+  const normalizedAllowed = ALLOWED_ROLES.map(normalizeRole);
+  const normalizedUser = userRoles.map(normalizeRole);
+
+  return normalizedUser.some((role) => normalizedAllowed.includes(role));
 }
 
 module.exports = {

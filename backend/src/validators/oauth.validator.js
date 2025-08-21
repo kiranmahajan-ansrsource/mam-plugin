@@ -1,7 +1,7 @@
 const Joi = require("joi");
 
 const oauthLoginSchema = Joi.object({
-  returnTo: Joi.string().uri().optional()
+  returnTo: Joi.string().optional()
 });
 
 const oauthCallbackSchema = Joi.object({

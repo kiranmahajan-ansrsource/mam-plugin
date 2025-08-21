@@ -14,6 +14,7 @@ function hasAllowedRole(userRoles) {
   const normalizedUser = userRoles.map(normalizeRole);
 
   return normalizedUser.some((role) => normalizedAllowed.includes(role));
+  return userRoles.some((role) => ALLOWED_ROLES.includes(normalizeRole(role)));
 }
 
 module.exports = {

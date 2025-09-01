@@ -35,11 +35,9 @@ lti.setup(
   COOKIE_SECRET
 );
 
-
-
 const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .split(",")
-  .map(o => o.trim().replace(/\/$/, "")) 
+  .map((o) => o.trim().replace(/\/$/, ""))
   .filter(Boolean);
 
 console.log("Allowed origins:", allowedOrigins);
@@ -49,8 +47,11 @@ lti.app.set("trust proxy", 1);
 lti.app.use(
   cors({
     origin: function (origin, callback) {
-
-      if (!origin || origin === "null" || allowedOrigins.includes(origin.replace(/\/$/, ""))) {
+      if (
+        !origin ||
+        origin === "null" ||
+        allowedOrigins.includes(origin.replace(/\/$/, ""))
+      ) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
@@ -60,10 +61,7 @@ lti.app.use(
   })
 );
 
-
-
 lti.app.use(generalLimiter);
-
 
 lti.onInvalidToken((req, res) => {
   if (res?.locals?.err?.details?.message === "TOKEN_TOO_OLD") {
@@ -78,7 +76,8 @@ lti.whitelist(
   "/lang/en.js",
   "/oauth/login",
   "/oauth/callback",
-  "/oauth/check"
+  "/oauth/check",
+  "/health"
 );
 
 lti.onConnect(async (token, req, res) => {
@@ -103,13 +102,16 @@ lti.onDeepLinking(async (token, req, res) => {
     });
   }
   const userRoles = token.platformContext?.roles || [];
-  
-  
+
   if (!hasAllowedRole(userRoles)) {
     console.log("Access denied");
     return lti.redirect(res, "/prohibited");
   }
   return lti.redirect(res, "/deeplink", { newResource: true });
+});
+
+lti.app.use("/health", (req, res) => {
+  res.status(200).json({ message: "Healthy" });
 });
 
 lti.app.use(routes);

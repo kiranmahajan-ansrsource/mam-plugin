@@ -10,7 +10,7 @@ const insertValidator = Joi.object({
   Path_TR7: Joi.object({
     URI: Joi.string().uri().optional()
   }).optional(),
-}).required();
+}).unknown(true);
 
 const searchDbValidator = Joi.object({
   query: Joi.string().trim().min(1).required()

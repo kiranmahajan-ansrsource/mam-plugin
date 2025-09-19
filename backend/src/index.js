@@ -10,8 +10,7 @@ const {
 } = require("./utils");
 const routes = require("./routes");
 
-const { generalLimiter } = require("./middleware/rate-limitor");
-require("dotenv").config();
+const { generalLimiter } = require("./middleware/rate-limiter");
 const errorHandler = require("./middleware/error.middleware");
 const isDev = process.env.NODE_ENV !== "production";
 const publicPath = path.join(__dirname, "../public");
@@ -40,7 +39,9 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .map((o) => o.trim().replace(/\/$/, ""))
   .filter(Boolean);
 
-console.log("Allowed origins:", allowedOrigins);
+if (process.env.NODE_ENV !== "production") {
+  console.log("Allowed origins:", allowedOrigins);
+}
 
 lti.app.set("trust proxy", 1);
 

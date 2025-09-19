@@ -1,10 +1,18 @@
 require("dotenv").config();
-const { validateEnv } = require("./env");
 const path = require("path");
 const lti = require("ltijs").Provider;
+const cors = require("cors");
+const {
+  hasAllowedRole,
+  setSignedCookie,
+  logDecodedJwt,
+  validateEnv,
+} = require("./utils");
 const routes = require("./routes");
-const { logDecodedJwt } = require("./jwtLogger");
-const { hasAllowedRole, setSignedCookie } = require("./utils/common.utils");
+
+const { generalLimiter } = require("./middleware/rate-limitor");
+require("dotenv").config();
+const errorHandler = require("./middleware/error.middleware");
 const isDev = process.env.NODE_ENV !== "production";
 const publicPath = path.join(__dirname, "../public");
 const COOKIE_SECRET = process.env.LTI_KEY;
@@ -27,6 +35,34 @@ lti.setup(
   COOKIE_SECRET
 );
 
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+  .split(",")
+  .map((o) => o.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
+console.log("Allowed origins:", allowedOrigins);
+
+lti.app.set("trust proxy", 1);
+
+lti.app.use(
+  cors({
+    origin: function (origin, callback) {
+      if (
+        !origin ||
+        origin === "null" ||
+        allowedOrigins.includes(origin.replace(/\/$/, ""))
+      ) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
+
+lti.app.use(generalLimiter);
+
 lti.onInvalidToken((req, res) => {
   if (res?.locals?.err?.details?.message === "TOKEN_TOO_OLD") {
     return res.redirect("/login");
@@ -40,7 +76,8 @@ lti.whitelist(
   "/lang/en.js",
   "/oauth/login",
   "/oauth/callback",
-  "/oauth/check"
+  "/oauth/check",
+  "/health"
 );
 
 lti.onConnect(async (token, req, res) => {
@@ -65,6 +102,7 @@ lti.onDeepLinking(async (token, req, res) => {
     });
   }
   const userRoles = token.platformContext?.roles || [];
+
   if (!hasAllowedRole(userRoles)) {
     console.log("Access denied");
     return lti.redirect(res, "/prohibited");
@@ -72,7 +110,13 @@ lti.onDeepLinking(async (token, req, res) => {
   return lti.redirect(res, "/deeplink", { newResource: true });
 });
 
+lti.app.use("/health", (req, res) => {
+  res.status(200).json({ message: "Healthy" });
+});
+
 lti.app.use(routes);
+
+lti.app.use(errorHandler);
 
 const setup = async () => {
   await lti.deploy({ port: process.env.PORT, silent: true });

@@ -38,7 +38,7 @@ export class DetailsPage extends LitElement {
         </d2l-breadcrumbs>
       </header>
 
-      <main class="main-container mt-1 mb-1">
+      <main class="main-container mt-1 mb-1" aria-label="Image details page">
         <image-container
           .src=${this.image.Path_TR1?.URI || ""}
           .alt=${this.image.Title || this.image.SystemIdentifier || ""}

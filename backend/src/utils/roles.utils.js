@@ -4,6 +4,7 @@ const ALLOWED_ROLES = (process.env.ALLOWED_ROLES || "")
   .filter(Boolean);
 
 function normalizeRole(role) {
+  if (typeof role !== "string") return "";
   return role.split("#").pop().trim().toLowerCase();
 }
 
@@ -14,7 +15,6 @@ function hasAllowedRole(userRoles) {
   const normalizedUser = userRoles.map(normalizeRole);
 
   return normalizedUser.some((role) => normalizedAllowed.includes(role));
-  return userRoles.some((role) => ALLOWED_ROLES.includes(normalizeRole(role)));
 }
 
 module.exports = {

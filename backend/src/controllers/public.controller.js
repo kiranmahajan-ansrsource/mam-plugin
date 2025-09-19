@@ -25,8 +25,8 @@ const publicInsertController = asyncHandler(async (req, res) => {
   const d2lAccessToken = await getOrRenewToken({
     userId,
     provider: "d2l",
-    getNewTokenFn: getRefreshedD2LToken,
-    getRefreshTokenFn: async () => null,
+    getNewTokenFn: async () => null,
+    getRefreshTokenFn: getRefreshedD2LToken,
   });
 
   if (!d2lAccessToken) {
@@ -334,9 +334,9 @@ const publicSearchDBController = asyncHandler(async (req, res) => {
   const results = await imageModel.find({
     organization: organization._id,
     $or: [
-      { title: searchRegex },
+      { Title: searchRegex },
       { altText: searchRegex },
-      { keywords: { $in: [searchRegex] } },
+      { keywords: searchRegex },
     ],
   });
 

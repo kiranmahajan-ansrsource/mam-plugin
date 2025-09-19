@@ -20,7 +20,7 @@ router.get(
 
 router.get(
   "/oauth/callback",
-  // validateRequest(oauthCallbackSchema, "query"),
+  validateRequest(oauthCallbackSchema, "query"),
   oauthCallbackController
 );
 

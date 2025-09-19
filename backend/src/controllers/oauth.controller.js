@@ -20,13 +20,17 @@ async function getNewD2LToken(code) {
     client_id: process.env.D2L_OAUTH_CLIENT_ID,
     client_secret: process.env.D2L_OAUTH_CLIENT_SECRET,
   });
-  console.log("[D2L OAuth] Requesting new access token...");
+  if (process.env.LOG_VERBOSE === "1") {
+    console.log("[D2L OAuth] Requesting new access token...");
+  }
   const tokenRes = await axios.post(
     process.env.D2L_OAUTH_TOKEN_URL,
     payload.toString(),
     { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
   );
-  console.log("[D2L OAuth] New access token obtained.");
+  if (process.env.LOG_VERBOSE === "1") {
+    console.log("[D2L OAuth] New access token obtained.");
+  }
   return tokenRes.data;
 }
 
@@ -37,13 +41,17 @@ async function getRefreshedD2LToken(refreshToken) {
     client_id: process.env.D2L_OAUTH_CLIENT_ID,
     client_secret: process.env.D2L_OAUTH_CLIENT_SECRET,
   });
-  console.log("[D2L OAuth] Refreshing access token...");
+  if (process.env.LOG_VERBOSE === "1") {
+    console.log("[D2L OAuth] Refreshing access token...");
+  }
   const tokenRes = await axios.post(
     process.env.D2L_OAUTH_TOKEN_URL,
     payload.toString(),
     { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
   );
-  console.log("[D2L OAuth] Access token refreshed.");
+  if (process.env.LOG_VERBOSE === "1") {
+    console.log("[D2L OAuth] Access token refreshed.");
+  }
   return tokenRes.data;
 }
 

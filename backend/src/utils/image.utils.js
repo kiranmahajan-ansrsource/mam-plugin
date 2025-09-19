@@ -8,7 +8,9 @@ async function fetchImageBuffer(imageUrl) {
       `Invalid content type for image URL: ${contentType || "Not provided"}`
     );
   }
-  console.log(`Image Service: Fetched image with content type: ${contentType}`);
+  if (process.env.LOG_VERBOSE === "1") {
+    console.log(`Image Service: Fetched image with content type: ${contentType}`);
+  }
   return { buffer: response.data, contentType };
 }
 

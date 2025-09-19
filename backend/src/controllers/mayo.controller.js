@@ -1,6 +1,11 @@
 const axios = require("axios");
 const asyncHandler = require("express-async-handler");
-const { getUserId, getOrRenewToken, httpError } = require("../utils");
+const {
+  getUserId,
+  getUserEmail,
+  getOrRenewToken,
+  httpError,
+} = require("../utils");
 
 async function getNewMayoToken() {
   const response = await axios.post(
@@ -27,7 +32,11 @@ async function getNewMayoToken() {
 const mayoController = asyncHandler(async (req, res) => {
   const { query, pagenumber, countperpage } = req.query;
   const userId = getUserId(req, res);
+  const userEmail = getUserEmail(req, res);
 
+  if (process.env.LOG_VERBOSE === "1") {
+    console.log("Mayo search as:", userEmail || "no-impersonation");
+  }
   const accessToken = await getOrRenewToken({
     userId,
     provider: "mayo",
@@ -47,6 +56,7 @@ const mayoController = asyncHandler(async (req, res) => {
       format: "json",
       fields:
         "SystemIdentifier,Title,Path_TR7,Path_TR1,CreateDate,EditDate,MediaType,DocSubType,mimetype,MediaNumber,Caption,Directory,UsageDescription,Keyword",
+      ...(userEmail ? { ImpersonateAnotherUser: userEmail } : {}),
     },
   });
 

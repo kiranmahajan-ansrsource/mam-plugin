@@ -4,4 +4,18 @@ function getUserId(req, res) {
     return req.signedCookies.ltiUserId;
   return null;
 }
-module.exports = { getUserId };
+
+function getUserEmail(req, res) {
+  const ctx = res.locals?.context;
+  const token = res.locals?.token;
+
+  const emailFromContext = ctx?.userInfo?.email || ctx?.userEmail || null;
+  if (emailFromContext) return String(emailFromContext).trim();
+
+  const emailFromToken = token?.userInfo?.email || token?.platformContext?.user?.email;
+  if (emailFromToken) return String(emailFromToken).trim();
+
+  return null;
+}
+
+module.exports = { getUserId, getUserEmail };

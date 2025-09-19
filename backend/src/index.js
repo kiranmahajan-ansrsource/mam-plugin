@@ -39,10 +39,6 @@ const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
   .map((o) => o.trim().replace(/\/$/, ""))
   .filter(Boolean);
 
-if (process.env.NODE_ENV !== "production") {
-  console.log("Allowed origins:", allowedOrigins);
-}
-
 lti.app.set("trust proxy", 1);
 
 lti.app.use(
@@ -105,7 +101,9 @@ lti.onDeepLinking(async (token, req, res) => {
   const userRoles = token.platformContext?.roles || [];
 
   if (!hasAllowedRole(userRoles)) {
-    console.log("Access denied");
+    if (process.env.LOG_VERBOSE === "1") {
+      console.log("Access denied");
+    }
     return lti.redirect(res, "/prohibited");
   }
   return lti.redirect(res, "/deeplink", { newResource: true });

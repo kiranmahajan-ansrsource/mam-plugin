@@ -251,7 +251,9 @@ const publicInsertController = asyncHandler(async (req, res) => {
     items,
     { message: "Image inserted successfully into D2L!" }
   );
-  console.log("Organization ID:", organization?._id);
+  if (process.env.LOG_VERBOSE === "1") {
+    console.log("Organization ID:", organization?._id);
+  }
 
   // Step 5: Cache in MongoDB
   await imageModel.findOneAndUpdate(
@@ -272,9 +274,11 @@ const publicInsertController = asyncHandler(async (req, res) => {
     },
     { upsert: true, new: true }
   );
-  console.log(
-    `Image with ID ${SystemIdentifier} cached in MongoDB (upserted).`
-  );
+  if (process.env.LOG_VERBOSE === "1") {
+    console.log(
+      `Image with ID ${SystemIdentifier} cached in MongoDB (upserted).`
+    );
+  }
   res.send(formHtml);
 
   // Step 6: Cleanup temp module/topic
@@ -284,7 +288,9 @@ const publicInsertController = asyncHandler(async (req, res) => {
         `${process.env.D2L_API_BASE_URL}/${orgUnitId}/content/topics/${topicId}`,
         { headers: { Authorization: `Bearer ${d2lAccessToken}` } }
       );
-      console.log(`Successfully deleted temporary topic ${topicId}.`);
+      if (process.env.LOG_VERBOSE === "1") {
+        console.log(`Successfully deleted temporary topic ${topicId}.`);
+      }
     }
     if (moduleId) {
       await axios.delete(
@@ -292,7 +298,9 @@ const publicInsertController = asyncHandler(async (req, res) => {
         { headers: { Authorization: `Bearer ${d2lAccessToken}` } }
       );
     }
-    console.log(`Successfully deleted temporary module ${moduleId}.`);
+    if (process.env.LOG_VERBOSE === "1") {
+      console.log(`Successfully deleted temporary module ${moduleId}.`);
+    }
   } catch (cleanupErr) {
     console.warn("Cleanup failed:", cleanupErr.message);
   }

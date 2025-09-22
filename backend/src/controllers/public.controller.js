@@ -45,9 +45,11 @@ const publicInsertController = asyncHandler(async (req, res) => {
 
   const { SystemIdentifier, altText, isDecorative } = finalImageData;
 
-  const availableOrgId = await organizationModel.findOne({
-    organizationId: orgUnitId,
-  });
+  const availableOrgId = await organizationModel.findOneAndUpdate(
+    { organizationId: orgUnitId },
+    { organizationId: orgUnitId },
+    { upsert: true, new: true }
+  );
 
   const cachedImage = await imageModel.findOne({
     SystemIdentifier,
@@ -333,10 +335,11 @@ const publicSearchDBController = asyncHandler(async (req, res) => {
     throw new HttpError(400, "Search query is required.");
   }
 
-  const organization = await organizationModel.findOne({ organizationId });
-  if (!organization) {
-    throw new HttpError(404, "Organization not found.");
-  }
+  const organization = await organizationModel.findOneAndUpdate(
+    { organizationId },
+    { organizationId },
+    { upsert: true, new: true }
+  );
 
   const searchRegex = new RegExp(query, "i");
   const results = await imageModel.find({

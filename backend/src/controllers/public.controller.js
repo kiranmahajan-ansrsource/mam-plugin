@@ -254,11 +254,21 @@ const publicInsertController = asyncHandler(async (req, res) => {
   console.log("Organization ID:", organization?._id);
 
   // Step 5: Cache in MongoDB
+  const sanitizedData = Object.fromEntries(
+    Object.entries(finalImageData || {}).filter(([key]) => !key.includes("."))
+  );
+  const rightsSituation = finalImageData?.["MAY.Digital-Rights-Situation"];
+  const rightsHolder = finalImageData?.["MAY.Copyright-Holder"];
+  const rightsType = finalImageData?.["MAY.Copyright-Type"];
+
   await imageModel.findOneAndUpdate(
     { SystemIdentifier, organization: organization._id },
     {
       $set: {
-        ...finalImageData,
+        ...sanitizedData,
+        MayoDigitalRightsSituation: rightsSituation || sanitizedData.MayoDigitalRightsSituation,
+        MayoCopyrightHolder: rightsHolder || sanitizedData.MayoCopyrightHolder,
+        MayoCopyrightType: rightsType || sanitizedData.MayoCopyrightType,
         d2lImageUrl,
         d2lFullImageUrl,
         organization: organization._id,
@@ -323,6 +333,13 @@ const publicSearchDBController = asyncHandler(async (req, res) => {
 
   if (!query?.trim()) {
     throw new HttpError(400, "Search query is required.");
+  }
+  const disallowedPattern = /[:;?&#=%]/;
+  if (disallowedPattern.test(String(query))) {
+    throw new HttpError(
+      400,
+      "Please remove invalid characters (: ; ? & # = %) to continue."
+    );
   }
 
   const organization = await organizationModel.findOne({ organizationId });

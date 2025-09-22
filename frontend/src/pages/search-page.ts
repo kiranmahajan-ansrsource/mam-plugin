@@ -14,6 +14,7 @@ import {
   searchFallbackImages,
   searchImages,
 } from "../utils/helper";
+import { UI_MESSAGES } from "../utils/messages";
 
 @customElement("search-page")
 export class SearchPage extends LitElement {
@@ -42,7 +43,12 @@ export class SearchPage extends LitElement {
   @state() private errorMessage = "";
   @state() private hasSearched = false;
   @state() private fromFallback = false;
+  @state() private showInvalidToast = false;
   private readonly countperpage = 12;
+
+  private hasInvalidChars(input: string): boolean {
+    return /[:%&#]/.test(input);
+  }
 
   private _resetSearch() {
     this.searchTerm = "";
@@ -59,6 +65,14 @@ export class SearchPage extends LitElement {
   }
   private async _triggerSearch() {
     if (!this.searchTerm.trim()) return;
+    if (this.hasInvalidChars(this.searchTerm)) {
+      this.errorMessage = "";
+      this.showInvalidToast = true;
+      setTimeout(() => {
+        this.errorMessage = UI_MESSAGES.INVALID_CHARS;
+      }, 0);
+      return;
+    }
     this.loading = true;
     this.errorMessage = "";
     this.fromFallback = false;
@@ -79,11 +93,20 @@ export class SearchPage extends LitElement {
         this.errorMessage =
           "No images found. Please try a different search term.";
       }
-    } catch (err) {
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 400) {
+        const msg = err?.response?.data?.message || UI_MESSAGES.INVALID_CHARS;
+        this.errorMessage = "";
+        this.showInvalidToast = true;
+        setTimeout(() => {
+          this.errorMessage = msg;
+        }, 0);
+        return;
+      }
       const fallbackWorked = await this.fallbackErrorFunction(true);
       if (!fallbackWorked) {
-        this.errorMessage =
-          "Mayo image API is down please insert pre-existing images from course files or organization files";
+        this.errorMessage = UI_MESSAGES.OUTAGE_FALLBACK;
       }
     } finally {
       this.loading = false;
@@ -103,11 +126,20 @@ export class SearchPage extends LitElement {
       const items = data.results || [];
       this.results = [...this.results, ...items];
       this.page = nextPage;
-    } catch (err) {
+    } catch (err: any) {
+      const status = err?.response?.status;
+      if (status === 400) {
+        const msg = err?.response?.data?.message || UI_MESSAGES.INVALID_CHARS;
+        this.errorMessage = "";
+        this.showInvalidToast = true;
+        setTimeout(() => {
+          this.errorMessage = msg;
+        }, 0);
+        return;
+      }
       const fallbackWorked = await this.fallbackErrorFunction(false);
       if (!fallbackWorked) {
-        this.errorMessage =
-          "Mayo image API is down please insert pre-existing images from course files or organization files";
+        this.errorMessage = UI_MESSAGES.OUTAGE_FALLBACK;
       }
       console.error("Load more error:", err);
     } finally {
@@ -123,8 +155,7 @@ export class SearchPage extends LitElement {
         this.totalCount = 0;
         this.page = 1;
         this.lastSearchTerm = this.searchTerm;
-        this.errorMessage =
-          "Mayo image API is down please insert pre-existing images from course files or organization files";
+        this.errorMessage = UI_MESSAGES.OUTAGE_FALLBACK;
         this.hasSearched = true;
         return false;
       }
@@ -140,8 +171,7 @@ export class SearchPage extends LitElement {
         this.results = [...this.results, ...mappedImages];
         this.page += 1;
       }
-      this.errorMessage =
-        "Mayo API is down, showing results from your organization";
+      this.errorMessage = UI_MESSAGES.OUTAGE_FALLBACK;
       this.hasSearched = true;
       return true;
     } catch (err) {
@@ -163,11 +193,7 @@ export class SearchPage extends LitElement {
 
   render() {
     return html`
-      <main
-        class="main-container"
-        role="main"
-        aria-label="Image search page"
-      >
+      <main class="main-container" role="main" aria-label="Image search page">
         <h4 class="search-heading">
           Search by keyword to find relevant images.
         </h4>
@@ -208,7 +234,7 @@ export class SearchPage extends LitElement {
       </main>
       <toast-alert
         .message=${this.errorMessage}
-        .isFallback=${this.fromFallback}
+        .isFallback=${this.fromFallback || this.showInvalidToast}
       ></toast-alert>
     `;
   }

@@ -36,6 +36,9 @@ const imageSchema = new mongoose.Schema(
     altText: { type: String, default: "" },
     isDecorative: { type: Boolean, default: false },
     keywords: [String],
+    MayoDigitalRightsSituation: { type: String },
+    MayoCopyrightHolder: { type: String },
+    MayoCopyrightType: { type: String },
   },
   { timestamps: true }
 );

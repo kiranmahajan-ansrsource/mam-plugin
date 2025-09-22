@@ -53,6 +53,18 @@ export class DetailsList extends LitElement {
             ? html`<dt>Keyword</dt>
                 <dd>${img.Keyword}</dd>`
             : null}
+          ${img["MAY.Digital-Rights-Situation"] || img.MayoDigitalRightsSituation
+            ? html`<dt>Digital Rights Situation</dt>
+                <dd>${img["MAY.Digital-Rights-Situation"] || img.MayoDigitalRightsSituation}</dd>`
+            : null}
+          ${img["MAY.Copyright-Holder"] || img.MayoCopyrightHolder
+            ? html`<dt>Copyright Holder</dt>
+                <dd>${img["MAY.Copyright-Holder"] || img.MayoCopyrightHolder}</dd>`
+            : null}
+          ${img["MAY.Copyright-Type"] || img.MayoCopyrightType
+            ? html`<dt>Copyright Type</dt>
+                <dd>${img["MAY.Copyright-Type"] || img.MayoCopyrightType}</dd>`
+            : null}
         </dl>
       </d2l-dl-wrapper>
     `;

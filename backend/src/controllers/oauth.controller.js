@@ -5,7 +5,7 @@ const lti = require("ltijs").Provider;
 const {
   setSignedCookie,
   clearSignedCookie,
-  httpError,
+  HttpError,
   buildOAuthUrl,
   getOrRenewToken,
   saveTokenToDb,
@@ -68,7 +68,7 @@ const oauthCallbackController = asyncHandler(async (req, res) => {
   let returnToUrl = "/insert";
 
   if (!storedStateData) {
-    throw httpError(
+    throw new HttpError(
       403,
       "Authentication failed: Invalid or missing state. Please try logging in again."
     );
@@ -78,13 +78,16 @@ const oauthCallbackController = asyncHandler(async (req, res) => {
   returnToUrl = storedReturnTo || returnToUrl;
 
   if (!state || state !== storedState) {
-    throw httpError(403, "Invalid OAuth state. Please try logging in again.");
+    throw new HttpError(
+      403,
+      "Invalid OAuth state. Please try logging in again."
+    );
   }
 
   clearSignedCookie(res, "oauthState");
 
   if (!code) {
-    throw httpError(400, "Missing 'code' parameter from D2L.");
+    throw new HttpError(400, "Missing 'code' parameter from D2L.");
   }
 
   const tokenData = await getNewD2LToken(code);

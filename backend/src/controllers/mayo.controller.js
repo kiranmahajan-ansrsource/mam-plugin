@@ -25,15 +25,12 @@ const mayoController = asyncHandler(async (req, res) => {
   const { query, pagenumber, countperpage } = req.query;
   const userId = getUserId(req, res);
 
-  const disallowedPattern = /[:%&#]/;
+  const disallowedPattern = /[^\p{L}\p{N}\s\.]/u
   if (!query || !String(query).trim()) {
     throw new HttpError(400, "Search query is required.");
   }
   if (disallowedPattern.test(String(query))) {
-    throw new HttpError(
-      400,
-      "Please remove invalid characters (: % & #) to continue."
-    );
+    throw new HttpError(400, "Please remove invalid characters to continue the search.");
   }
 
   const accessToken = await getOrRenewToken({

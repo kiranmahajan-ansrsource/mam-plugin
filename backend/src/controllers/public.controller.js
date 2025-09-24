@@ -334,12 +334,9 @@ const publicSearchDBController = asyncHandler(async (req, res) => {
   if (!query?.trim()) {
     throw new HttpError(400, "Search query is required.");
   }
-  const disallowedPattern = /[:;?&#=%]/;
+  const disallowedPattern = /[^\p{L}\p{N}\s\.]/u
   if (disallowedPattern.test(String(query))) {
-    throw new HttpError(
-      400,
-      "Please remove invalid characters (: ; ? & # = %) to continue."
-    );
+    throw new HttpError(400, "Please remove invalid characters to continue the search.");
   }
 
   const organization = await organizationModel.findOne({ organizationId });
@@ -355,7 +352,8 @@ const publicSearchDBController = asyncHandler(async (req, res) => {
       { altText: searchRegex },
       { keywords: searchRegex },
     ],
-  });
+  })
+    .limit(100);
 
   res.json(results);
 });

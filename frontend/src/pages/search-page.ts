@@ -15,6 +15,7 @@ import {
   searchImages,
 } from "../utils/helper";
 import { UI_MESSAGES } from "../utils/messages";
+import { isValidSearchQuery } from "../utils/helper";
 
 @customElement("search-page")
 export class SearchPage extends LitElement {
@@ -46,9 +47,6 @@ export class SearchPage extends LitElement {
   @state() private showInvalidToast = false;
   private readonly countperpage = 12;
 
-  private hasInvalidChars(input: string): boolean {
-    return /[:%&#]/.test(input);
-  }
 
   private _resetSearch() {
     this.searchTerm = "";
@@ -65,7 +63,7 @@ export class SearchPage extends LitElement {
   }
   private async _triggerSearch() {
     if (!this.searchTerm.trim()) return;
-    if (this.hasInvalidChars(this.searchTerm)) {
+    if (!isValidSearchQuery(this.searchTerm)) {
       this.errorMessage = "";
       this.showInvalidToast = true;
       setTimeout(() => {

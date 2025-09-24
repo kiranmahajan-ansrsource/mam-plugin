@@ -12,7 +12,7 @@ dist
 dist-ssr
 *.local
 .env
-.env-prod
+.env.lcsdev
 /backend/public
 
 # Editor directories and files

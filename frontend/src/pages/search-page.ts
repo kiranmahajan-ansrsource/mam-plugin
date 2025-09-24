@@ -45,7 +45,7 @@ export class SearchPage extends LitElement {
   @state() private hasSearched = false;
   @state() private fromFallback = false;
   @state() private showInvalidToast = false;
-  private readonly countperpage = 12;
+  private readonly countperpage = 100;
 
 
   private _resetSearch() {

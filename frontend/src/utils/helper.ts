@@ -155,6 +155,7 @@ export function createInsertForm({
   const flatImageData = flattenObject(image);
 
   Object.keys(flatImageData).forEach((key) => {
+    if (key === "isDecorative" || key === "altText") return;
     const input = document.createElement("input");
     input.type = "hidden";
     input.name = key;

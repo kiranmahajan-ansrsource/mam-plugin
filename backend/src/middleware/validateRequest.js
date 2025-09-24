@@ -1,6 +1,9 @@
 module.exports = function validateRequest(schema, property = "body") {
   return (req, res, next) => {
-    const { error } = schema.validate(req[property], { abortEarly: false });
+    const { error, value } = schema.validate(req[property], {
+      abortEarly: false,
+      convert: true,
+    });
 
     if (error) {
       return res.status(400).json({
@@ -10,6 +13,7 @@ module.exports = function validateRequest(schema, property = "body") {
       });
     }
 
+    req[property] = value;
     next();
   };
 };

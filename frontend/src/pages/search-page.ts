@@ -47,7 +47,6 @@ export class SearchPage extends LitElement {
   @state() private showInvalidToast = false;
   private readonly countperpage = 100;
 
-
   private _resetSearch() {
     this.searchTerm = "";
     this.lastSearchTerm = "";
@@ -180,9 +179,8 @@ export class SearchPage extends LitElement {
   private _select(image: any) {
     if (!image || typeof image !== "object") return;
     const finalImage = { ...image };
-    if ("altText" in finalImage) {
-      delete finalImage.altText;
-    }
+    if ("altText" in finalImage) delete finalImage.altText;
+    if ("isDecorative" in finalImage) delete finalImage.isDecorative;
     sessionStorage.setItem("selectedImage", JSON.stringify(finalImage));
     sessionStorage.setItem("searchTerm", JSON.stringify(this.searchTerm));
     if (!this.ltik) return;

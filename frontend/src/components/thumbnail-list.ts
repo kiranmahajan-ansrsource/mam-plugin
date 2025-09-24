@@ -45,10 +45,12 @@ export class ThumbnailList extends LitElement {
               <div
                 tabindex="0"
                 class="thumbnail"
-                @click=${() => this.onSelect(img)}
+                @click=${() => {
+                  this.onSelect(img);
+                }}
               >
                 <img
-                  src=${img.Path_TR7?.URI || ""}
+                  src=${img.Path_TR7?.URI || img.Path_TR1?.URI || ""}
                   alt=${img.Title || ""}
                   crossorigin="anonymous"
                 />

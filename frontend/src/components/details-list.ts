@@ -18,6 +18,21 @@ export class DetailsList extends LitElement {
   @property({ type: Object }) image: any = {};
   render() {
     const img = this.image || {};
+    const rightsRaw =
+      img["MAY.Digital-Rights-Situation"] ?? img.MayoDigitalRightsSituation;
+    const rights =
+      typeof rightsRaw === "object" && rightsRaw
+        ? rightsRaw.Value || rightsRaw.KeywordText || ""
+        : rightsRaw || "";
+
+    const cTypeRaw = img["MAY.Copyright-Type"] ?? img.MayoCopyrightType;
+    const cType =
+      typeof cTypeRaw === "object" && cTypeRaw
+        ? cTypeRaw.Value || cTypeRaw.KeywordText || ""
+        : cTypeRaw || "";
+
+    const cHolder =
+      img["MAY.Copyright-Holder"] || img.MayoCopyrightHolder || "";
     return html`
       <d2l-dl-wrapper>
         <dl>
@@ -53,17 +68,17 @@ export class DetailsList extends LitElement {
             ? html`<dt>Keyword</dt>
                 <dd>${img.Keyword}</dd>`
             : null}
-          ${img["MAY.Digital-Rights-Situation"] || img.MayoDigitalRightsSituation
+          ${rights
             ? html`<dt>Digital Rights Situation</dt>
-                <dd>${img["MAY.Digital-Rights-Situation"] || img.MayoDigitalRightsSituation}</dd>`
+                <dd>${rights}</dd>`
             : null}
-          ${img["MAY.Copyright-Holder"] || img.MayoCopyrightHolder
+          ${cHolder
             ? html`<dt>Copyright Holder</dt>
-                <dd>${img["MAY.Copyright-Holder"] || img.MayoCopyrightHolder}</dd>`
+                <dd>${cHolder}</dd>`
             : null}
-          ${img["MAY.Copyright-Type"] || img.MayoCopyrightType
+          ${cType
             ? html`<dt>Copyright Type</dt>
-                <dd>${img["MAY.Copyright-Type"] || img.MayoCopyrightType}</dd>`
+                <dd>${cType}</dd>`
             : null}
         </dl>
       </d2l-dl-wrapper>

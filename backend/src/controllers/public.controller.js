@@ -258,11 +258,39 @@ const publicInsertController = asyncHandler(async (req, res) => {
   }
 
   // Step 5: Cache in MongoDB
+  const sanitizedData = Object.fromEntries(
+    Object.entries(finalImageData || {}).filter(([key]) => !key.includes("."))
+  );
+
+  const rightsSituationRaw =
+    finalImageData?.["MAY.Digital-Rights-Situation"] ??
+    finalImageData?.MAY?.["Digital-Rights-Situation"];
+  const rightsTypeRaw =
+    finalImageData?.["MAY.Copyright-Type"] ??
+    finalImageData?.MAY?.["Copyright-Type"];
+  const rightsHolderRaw =
+    finalImageData?.["MAY.Copyright-Holder"] ??
+    finalImageData?.MAY?.["Copyright-Holder"];
+
+  const rightsSituation =
+    typeof rightsSituationRaw === "object" && rightsSituationRaw
+      ? rightsSituationRaw.Value || rightsSituationRaw.KeywordText || ""
+      : rightsSituationRaw || "";
+  const rightsType =
+    typeof rightsTypeRaw === "object" && rightsTypeRaw
+      ? rightsTypeRaw.Value || rightsTypeRaw.KeywordText || ""
+      : rightsTypeRaw || "";
+  const rightsHolder = rightsHolderRaw || "";
+
   await imageModel.findOneAndUpdate(
     { SystemIdentifier, organization: organization._id },
     {
       $set: {
-        ...finalImageData,
+        ...sanitizedData,
+        MayoDigitalRightsSituation:
+          rightsSituation || sanitizedData.MayoDigitalRightsSituation,
+        MayoCopyrightHolder: rightsHolder || sanitizedData.MayoCopyrightHolder,
+        MayoCopyrightType: rightsType || sanitizedData.MayoCopyrightType,
         d2lImageUrl,
         d2lFullImageUrl,
         organization: organization._id,
@@ -334,6 +362,13 @@ const publicSearchDBController = asyncHandler(async (req, res) => {
   if (!query?.trim()) {
     throw new HttpError(400, "Search query is required.");
   }
+  const disallowedPattern = /[^\p{L}\p{N}\s\.]/u;
+  if (disallowedPattern.test(String(query))) {
+    throw new HttpError(
+      400,
+      "Please remove invalid characters to continue the search."
+    );
+  }
 
   const organization = await organizationModel.findOneAndUpdate(
     { organizationId },
@@ -342,14 +377,16 @@ const publicSearchDBController = asyncHandler(async (req, res) => {
   );
 
   const searchRegex = new RegExp(query, "i");
-  const results = await imageModel.find({
-    organization: organization._id,
-    $or: [
-      { Title: searchRegex },
-      { altText: searchRegex },
-      { keywords: searchRegex },
-    ],
-  });
+  const results = await imageModel
+    .find({
+      organization: organization._id,
+      $or: [
+        { Title: searchRegex },
+        { altText: searchRegex },
+        { keywords: searchRegex },
+      ],
+    })
+    .limit(100);
 
   res.json(results);
 });

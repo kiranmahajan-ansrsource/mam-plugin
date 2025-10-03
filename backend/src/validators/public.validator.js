@@ -3,7 +3,7 @@ const Joi = require("joi");
 const insertValidator = Joi.object({
   SystemIdentifier: Joi.string().required(),
   altText: Joi.string().allow(""), 
-  isDecorative: Joi.boolean().optional(),
+  isDecorative: Joi.boolean().truthy("true").falsy("false").optional(),
   Path_TR1: Joi.object({
     URI: Joi.string().uri().optional()
   }).optional(),

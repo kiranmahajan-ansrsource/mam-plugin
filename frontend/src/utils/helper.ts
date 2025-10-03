@@ -155,6 +155,7 @@ export function createInsertForm({
   const flatImageData = flattenObject(image);
 
   Object.keys(flatImageData).forEach((key) => {
+    if (key === "isDecorative" || key === "altText") return;
     const input = document.createElement("input");
     input.type = "hidden";
     input.name = key;
@@ -183,3 +184,38 @@ export function submitInsertForm(form: HTMLFormElement) {
   clearStoredImage();
   clearStoredSearchTerm();
 }
+
+export const ALLOWED_QUERY_REGEX = /[\p{L}\p{N}\s\.]+/u
+
+export function sanitizeSearchQuery(raw: string): {
+  clean: string;
+  changed: boolean;
+  invalidChars: string[];
+} {
+  const input = String(raw ?? "");
+  const invalidCharsSet = new Set<string>();
+  let clean = "";
+  for (const ch of input) {
+    if (ALLOWED_QUERY_REGEX.test(ch)) {
+      clean += ch;
+    } else {
+      invalidCharsSet.add(ch);
+    }
+  }
+  clean = clean.replace(/\s+/g, " ").trim();
+  return {
+    clean,
+    changed: clean !== input.trim(),
+    invalidChars: Array.from(invalidCharsSet),
+  };
+}
+
+export function isValidSearchQuery(raw: string): boolean {
+  const s = String(raw ?? "").trim();
+  if (!s) return false;
+  for (const ch of s) {
+    if (!ALLOWED_QUERY_REGEX.test(ch)) return false;
+  }
+  return true;
+}
+
